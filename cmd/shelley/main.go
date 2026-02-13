@@ -12,7 +12,9 @@ import (
 	"strings"
 
 	"shelley.exe.dev/claudetool"
+	memtool "shelley.exe.dev/claudetool/memory"
 	"shelley.exe.dev/db"
+	"shelley.exe.dev/memory"
 	"shelley.exe.dev/models"
 	"shelley.exe.dev/server"
 	_ "shelley.exe.dev/server/notifications/channels" // register channel types
@@ -89,6 +91,17 @@ func runServe(global GlobalConfig, args []string) {
 	database := setupDatabase(global.DBPath, logger)
 	defer database.Close()
 
+	// Open memory database (non-fatal if it fails)
+	var memoryDB *memory.DB
+	memDBPath := memory.MemoryDBPath(global.DBPath)
+	memoryDB, err := memory.Open(memDBPath)
+	if err != nil {
+		logger.Warn("Failed to open memory database", "error", err)
+	} else {
+		defer memoryDB.Close()
+		logger.Info("Opened memory database", "path", memDBPath)
+	}
+
 	// Set the database path for system prompt generation
 	server.DBPath = global.DBPath
 
@@ -104,15 +117,22 @@ func runServe(global GlobalConfig, args []string) {
 
 	toolSetConfig := setupToolSetConfig(llmManager)
 
+	// Wire up memory search tool if memory DB is available
+	if memoryDB != nil {
+		toolSetConfig.MemorySearchTool = memtool.NewMemorySearchTool(memoryDB, nil).Tool()
+	}
+
 	// Create server
 	svr := server.NewServer(database, llmManager, toolSetConfig, logger, global.PredictableOnly, llmConfig.TerminalURL, llmConfig.DefaultModel, *requireHeader, llmConfig.Links)
+
+	// Pass memory DB to server for post-conversation indexing
+	svr.SetMemoryDB(memoryDB)
 
 	// Seed notification channels from config file if DB is empty (one-time migration)
 	svr.SeedNotificationChannelsFromConfig(llmConfig.NotificationChannels)
 	// Load notification channels from DB
 	svr.ReloadNotificationChannels()
 
-	var err error
 	if *systemdActivation {
 		listener, listenerErr := systemdListener()
 		if listenerErr != nil {
@@ -239,10 +259,11 @@ func setupToolSetConfig(llmProvider claudetool.LLMServiceProvider) claudetool.To
 		wd = "/"
 	}
 	return claudetool.ToolSetConfig{
-		WorkingDir:       wd,
-		LLMProvider:      llmProvider,
-		EnableJITInstall: claudetool.EnableBashToolJITInstall,
-		EnableBrowser:    true,
+		WorkingDir:             wd,
+		LLMProvider:            llmProvider,
+		EnableJITInstall:       claudetool.EnableBashToolJITInstall,
+		EnableBrowser:          true,
+		EnableCodeIntelligence: true,
 	}
 }
 

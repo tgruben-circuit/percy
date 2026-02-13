@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"shelley.exe.dev/claudetool/browse"
+	"shelley.exe.dev/claudetool/lsp"
 	"shelley.exe.dev/llm"
 )
 
@@ -44,6 +45,8 @@ type ToolSetConfig struct {
 	EnableJITInstall bool
 	// EnableBrowser enables browser tools.
 	EnableBrowser bool
+	// EnableCodeIntelligence enables LSP-based code intelligence tools.
+	EnableCodeIntelligence bool
 	// ModelID is the model being used for this conversation.
 	// Used to determine tool configuration (e.g., simplified patch schema for weaker models).
 	ModelID string
@@ -68,6 +71,8 @@ type ToolSetConfig struct {
 	// A value of 0 means no limit (but SubagentRunner/SubagentDB must still be set).
 	// Set to 1 to allow only top-level conversations (depth 0) to spawn subagents.
 	MaxSubagentDepth int
+	// MemorySearchTool is the pre-built memory search tool. If set, it's added to the tool set.
+	MemorySearchTool *llm.Tool
 }
 
 // ToolSet holds a set of tools for a single conversation.
@@ -154,7 +159,12 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 		tools = append(tools, subagentTool.Tool())
 	}
 
-	var cleanup func()
+	if cfg.MemorySearchTool != nil {
+		tools = append(tools, cfg.MemorySearchTool)
+	}
+
+	var cleanups []func()
+
 	if cfg.EnableBrowser {
 		// Get max image dimension from the LLM service
 		maxImageDimension := 0
@@ -167,7 +177,22 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 		if len(browserTools) > 0 {
 			tools = append(tools, browserTools...)
 		}
-		cleanup = browserCleanup
+		cleanups = append(cleanups, browserCleanup)
+	}
+
+	if cfg.EnableCodeIntelligence {
+		lspTools, lspCleanup := lsp.RegisterLSPTools(wd.Get)
+		tools = append(tools, lspTools...)
+		cleanups = append(cleanups, lspCleanup)
+	}
+
+	var cleanup func()
+	if len(cleanups) > 0 {
+		cleanup = func() {
+			for _, fn := range cleanups {
+				fn()
+			}
+		}
 	}
 
 	return &ToolSet{

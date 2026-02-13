@@ -15,6 +15,7 @@ import (
 	"shelley.exe.dev/llm"
 	"shelley.exe.dev/llm/llmhttp"
 	"shelley.exe.dev/loop"
+	"shelley.exe.dev/memory"
 	"shelley.exe.dev/subpub"
 )
 
@@ -24,6 +25,7 @@ var errConversationModelMismatch = errors.New("conversation model mismatch")
 type ConversationManager struct {
 	conversationID string
 	db             *db.DB
+	memoryDB       *memory.DB
 	loop           *loop.Loop
 	loopCancel     context.CancelFunc
 	loopCtx        context.Context
@@ -51,7 +53,7 @@ type ConversationManager struct {
 }
 
 // NewConversationManager constructs a manager with dependencies but defers hydration until needed.
-func NewConversationManager(conversationID string, database *db.DB, baseLogger *slog.Logger, toolSetConfig claudetool.ToolSetConfig, recordMessage loop.MessageRecordFunc, onStateChange func(ConversationState)) *ConversationManager {
+func NewConversationManager(conversationID string, database *db.DB, memoryDB *memory.DB, baseLogger *slog.Logger, toolSetConfig claudetool.ToolSetConfig, recordMessage loop.MessageRecordFunc, onStateChange func(ConversationState)) *ConversationManager {
 	logger := baseLogger
 	if logger == nil {
 		logger = slog.Default()
@@ -61,6 +63,7 @@ func NewConversationManager(conversationID string, database *db.DB, baseLogger *
 	return &ConversationManager{
 		conversationID: conversationID,
 		db:             database,
+		memoryDB:       memoryDB,
 		lastActivity:   time.Now(),
 		recordMessage:  recordMessage,
 		logger:         logger,
@@ -488,6 +491,9 @@ func (cm *ConversationManager) ensureLoop(service llm.Service, modelID string) e
 				slog.Default().Error("Conversation loop stopped", "error", err)
 			}
 		}
+
+		// Index the conversation for memory search after the loop ends
+		cm.indexConversationForMemory(conversationID)
 	}()
 
 	return nil
@@ -696,6 +702,76 @@ func (cm *ConversationManager) recordGitStateChange(ctx context.Context, state *
 
 	// Notify subscribers so the UI updates
 	go cm.notifyGitStateChange(context.WithoutCancel(ctx), createdMsg)
+}
+
+// indexConversationForMemory indexes the conversation's messages into the memory
+// database for later search. This runs fire-and-forget after the loop ends.
+func (cm *ConversationManager) indexConversationForMemory(conversationID string) {
+	if cm.memoryDB == nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Load conversation to get the slug
+	conv, err := cm.db.GetConversationByID(ctx, conversationID)
+	if err != nil {
+		cm.logger.Warn("Memory index: failed to load conversation", "error", err)
+		return
+	}
+
+	slug := ""
+	if conv.Slug != nil {
+		slug = *conv.Slug
+	}
+
+	// Load messages from DB
+	var dbMessages []generated.Message
+	err = cm.db.Queries(ctx, func(q *generated.Queries) error {
+		var err error
+		dbMessages, err = q.ListMessagesForContext(ctx, conversationID)
+		return err
+	})
+	if err != nil {
+		cm.logger.Warn("Memory index: failed to load messages", "error", err)
+		return
+	}
+
+	// Extract text from user and agent messages
+	var messages []memory.MessageText
+	for _, msg := range dbMessages {
+		if msg.Type != string(db.MessageTypeUser) && msg.Type != string(db.MessageTypeAgent) {
+			continue
+		}
+		llmMsg, err := convertToLLMMessage(msg)
+		if err != nil {
+			continue
+		}
+		for _, content := range llmMsg.Content {
+			if content.Type == llm.ContentTypeText && content.Text != "" {
+				role := "user"
+				if msg.Type == string(db.MessageTypeAgent) {
+					role = "assistant"
+				}
+				messages = append(messages, memory.MessageText{
+					Role: role,
+					Text: content.Text,
+				})
+			}
+		}
+	}
+
+	if len(messages) == 0 {
+		return
+	}
+
+	if err := cm.memoryDB.IndexConversation(ctx, conversationID, slug, messages, nil); err != nil {
+		cm.logger.Warn("Memory index: failed to index conversation", "error", err)
+		return
+	}
+
+	cm.logger.Info("Indexed conversation for memory search", "messages", len(messages), "slug", slug)
 }
 
 // notifyGitStateChange publishes a gitinfo message to subscribers.

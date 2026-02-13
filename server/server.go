@@ -23,6 +23,7 @@ import (
 	"shelley.exe.dev/db"
 	"shelley.exe.dev/db/generated"
 	"shelley.exe.dev/llm"
+	"shelley.exe.dev/memory"
 	"shelley.exe.dev/models"
 	"shelley.exe.dev/server/notifications"
 	"shelley.exe.dev/ui"
@@ -216,6 +217,7 @@ type ConversationListUpdate struct {
 // Server manages the HTTP API and active conversations
 type Server struct {
 	db                  *db.DB
+	memoryDB            *memory.DB
 	llmManager          LLMProvider
 	toolSetConfig       claudetool.ToolSetConfig
 	activeConversations map[string]*ConversationManager
@@ -256,6 +258,12 @@ func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool
 	s.toolSetConfig.MaxSubagentDepth = 1 // Only top-level conversations can spawn subagents
 
 	return s
+}
+
+// SetMemoryDB sets the memory database for post-conversation indexing.
+// If nil, memory indexing is silently skipped.
+func (s *Server) SetMemoryDB(mdb *memory.DB) {
+	s.memoryDB = mdb
 }
 
 // RegisterNotificationChannel adds a backend notification channel to the dispatcher.
@@ -664,7 +672,7 @@ func (s *Server) getOrCreateConversationManager(ctx context.Context, conversatio
 			s.publishConversationState(state)
 		}
 
-		manager := NewConversationManager(conversationID, s.db, s.logger, s.toolSetConfig, recordMessage, onStateChange)
+		manager := NewConversationManager(conversationID, s.db, s.memoryDB, s.logger, s.toolSetConfig, recordMessage, onStateChange)
 		if err := manager.Hydrate(ctx); err != nil {
 			return nil, err
 		}
@@ -702,7 +710,7 @@ func (s *Server) getOrCreateSubagentConversationManager(ctx context.Context, con
 		subagentConfig := s.toolSetConfig
 		subagentConfig.SubagentDepth = s.toolSetConfig.SubagentDepth + 1
 
-		manager := NewConversationManager(conversationID, s.db, s.logger, subagentConfig, recordMessage, onStateChange)
+		manager := NewConversationManager(conversationID, s.db, s.memoryDB, s.logger, subagentConfig, recordMessage, onStateChange)
 		if err := manager.Hydrate(ctx); err != nil {
 			return nil, err
 		}
