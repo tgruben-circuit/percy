@@ -71,6 +71,8 @@ type ToolSetConfig struct {
 	// A value of 0 means no limit (but SubagentRunner/SubagentDB must still be set).
 	// Set to 1 to allow only top-level conversations (depth 0) to spawn subagents.
 	MaxSubagentDepth int
+	// MemorySearchTool is the pre-built memory search tool. If set, it's added to the tool set.
+	MemorySearchTool *llm.Tool
 }
 
 // ToolSet holds a set of tools for a single conversation.
@@ -155,6 +157,10 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 			Runner:               cfg.SubagentRunner,
 		}
 		tools = append(tools, subagentTool.Tool())
+	}
+
+	if cfg.MemorySearchTool != nil {
+		tools = append(tools, cfg.MemorySearchTool)
 	}
 
 	var cleanups []func()
