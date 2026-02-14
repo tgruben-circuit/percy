@@ -76,6 +76,7 @@ func (d *DB) SearchFTS(query, sourceType string, limit int) ([]SearchResult, err
 	return results, rows.Err()
 }
 
+// TODO: consider sqlite-vec or ANN index at scale
 // SearchVector performs a brute-force cosine similarity search over all chunks
 // with non-NULL embeddings. If sourceType is non-empty, only matching chunks
 // are considered. Returns the top `limit` results sorted by similarity descending.

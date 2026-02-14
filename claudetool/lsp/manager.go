@@ -81,6 +81,19 @@ func (m *Manager) ConfigForExt(ext string) *ServerConfig {
 	return m.extToConfig[ext]
 }
 
+// ConfiguredExtensions returns one representative extension per configured server.
+func (m *Manager) ConfiguredExtensions() []string {
+	seen := make(map[string]bool)
+	var exts []string
+	for _, cfg := range m.configs {
+		if len(cfg.Extensions) > 0 && !seen[cfg.Name] {
+			seen[cfg.Name] = true
+			exts = append(exts, cfg.Extensions[0])
+		}
+	}
+	return exts
+}
+
 // Close shuts down all running LSP servers.
 func (m *Manager) Close() {
 	m.mu.Lock()

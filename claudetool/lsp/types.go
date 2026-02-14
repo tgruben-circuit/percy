@@ -210,3 +210,44 @@ type DidChangeTextDocumentParams struct {
 	TextDocument   VersionedTextDocumentIdentifier  `json:"textDocument"`
 	ContentChanges []TextDocumentContentChangeEvent `json:"contentChanges"`
 }
+
+// DiagnosticSeverity represents the severity of a diagnostic.
+type DiagnosticSeverity int
+
+const (
+	DiagnosticSeverityError       DiagnosticSeverity = 1
+	DiagnosticSeverityWarning     DiagnosticSeverity = 2
+	DiagnosticSeverityInformation DiagnosticSeverity = 3
+	DiagnosticSeverityHint        DiagnosticSeverity = 4
+)
+
+// DiagnosticSeverityName returns a human-readable name for a DiagnosticSeverity.
+func DiagnosticSeverityName(s DiagnosticSeverity) string {
+	switch s {
+	case DiagnosticSeverityError:
+		return "error"
+	case DiagnosticSeverityWarning:
+		return "warning"
+	case DiagnosticSeverityInformation:
+		return "info"
+	case DiagnosticSeverityHint:
+		return "hint"
+	default:
+		return "unknown"
+	}
+}
+
+// Diagnostic represents a diagnostic, such as a compiler error or warning.
+type Diagnostic struct {
+	Range    Range              `json:"range"`
+	Severity DiagnosticSeverity `json:"severity,omitempty"`
+	Code     any                `json:"code,omitempty"`
+	Source   string             `json:"source,omitempty"`
+	Message  string             `json:"message"`
+}
+
+// PublishDiagnosticsParams is sent from the server to the client to signal results of validation.
+type PublishDiagnosticsParams struct {
+	URI         string       `json:"uri"`
+	Diagnostics []Diagnostic `json:"diagnostics"`
+}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"shelley.exe.dev/llm"
 )
@@ -18,9 +19,10 @@ Operations:
 - references: Find all references to a symbol at a given file position
 - hover: Get type information and documentation for a symbol at a given file position
 - symbols: Search for symbols (functions, types, variables) across the workspace
+- diagnostics: Get compiler errors and warnings for a file
 
 Use this for precise, semantic code navigation. For text-based search, use keyword_search instead.
-Requires an LSP server installed for the file's language (e.g., gopls for Go, typescript-language-server for TypeScript).
+Requires an LSP server installed for the file's language (e.g., gopls for Go, typescript-language-server for TypeScript, pyright for Python, rust-analyzer for Rust).
 
 Note: The first call for a language may be slow while the LSP server starts and indexes the workspace.
 `
@@ -30,7 +32,7 @@ Note: The first call for a language may be slow while the LSP server starts and 
   "properties": {
     "operation": {
       "type": "string",
-      "enum": ["definition", "references", "hover", "symbols"],
+      "enum": ["definition", "references", "hover", "symbols", "diagnostics"],
       "description": "The code intelligence operation to perform"
     },
     "file": {
@@ -89,8 +91,10 @@ func (c *CodeIntelTool) Run(ctx context.Context, m json.RawMessage) llm.ToolOut 
 		return c.runPositionOp(ctx, input)
 	case "symbols":
 		return c.runSymbols(ctx, input)
+	case "diagnostics":
+		return c.runDiagnostics(ctx, input)
 	default:
-		return llm.ErrorfToolOut("unknown operation %q: must be one of definition, references, hover, symbols", input.Operation)
+		return llm.ErrorfToolOut("unknown operation %q: must be one of definition, references, hover, symbols, diagnostics", input.Operation)
 	}
 }
 
@@ -164,14 +168,12 @@ func (c *CodeIntelTool) runSymbols(ctx context.Context, input codeIntelInput) ll
 	}
 
 	// For symbols, we need any server — use the working dir to pick one.
-	// Try to find an appropriate server by looking for common files.
-	// Fall back to gopls if available.
+	// Try each configured server extension until one works.
 	wd := c.workingDir()
 
-	// Try to get a server. For workspace symbols, we'll try Go first then TS.
 	var srv *Server
 	var errs []string
-	for _, ext := range []string{".go", ".ts"} {
+	for _, ext := range c.manager.ConfiguredExtensions() {
 		var err error
 		srv, err = c.manager.GetServer(ctx, filepath.Join(wd, "dummy"+ext))
 		if err == nil {
@@ -188,4 +190,31 @@ func (c *CodeIntelTool) runSymbols(ctx context.Context, input codeIntelInput) ll
 		return llm.ErrorfToolOut("workspace symbols failed: %s", err)
 	}
 	return llm.ToolOut{LLMContent: llm.TextContent(formatSymbols(symbols, wd))}
+}
+
+func (c *CodeIntelTool) runDiagnostics(ctx context.Context, input codeIntelInput) llm.ToolOut {
+	if input.File == "" {
+		return llm.ErrorfToolOut("file is required for diagnostics operation")
+	}
+
+	filePath := input.File
+	if !filepath.IsAbs(filePath) {
+		filePath = filepath.Join(c.workingDir(), filePath)
+	}
+	filePath = filepath.Clean(filePath)
+
+	srv, err := c.manager.GetServer(ctx, filePath)
+	if err != nil {
+		return llm.ErrorfToolOut("%s", err)
+	}
+
+	if err := srv.OpenFile(ctx, filePath); err != nil {
+		return llm.ErrorfToolOut("failed to open file in LSP: %s", err)
+	}
+
+	uri := fileURI(filePath)
+	diags := srv.WaitForDiagnostics(uri, 2*time.Second)
+
+	wd := c.workingDir()
+	return llm.ToolOut{LLMContent: llm.TextContent(formatDiagnostics(diags, filePath, wd))}
 }

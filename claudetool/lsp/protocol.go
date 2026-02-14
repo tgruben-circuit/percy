@@ -26,6 +26,9 @@ type Client struct {
 	pending  map[int64]chan *rpcResponse
 	closed   chan struct{}
 	closeErr error
+
+	// OnDiagnostics is called when the server publishes diagnostics for a URI.
+	OnDiagnostics func(uri string, diags []Diagnostic)
 }
 
 type rpcRequest struct {
@@ -245,8 +248,18 @@ func (c *Client) readLoop() {
 			continue
 		}
 
-		// If no ID, it's a server notification — ignore
+		// If no ID, it's a server notification — check for diagnostics
 		if resp.ID == nil {
+			var notif struct {
+				Method string          `json:"method"`
+				Params json.RawMessage `json:"params"`
+			}
+			if json.Unmarshal(body, &notif) == nil && notif.Method == "textDocument/publishDiagnostics" {
+				var params PublishDiagnosticsParams
+				if json.Unmarshal(notif.Params, &params) == nil && c.OnDiagnostics != nil {
+					c.OnDiagnostics(params.URI, params.Diagnostics)
+				}
+			}
 			continue
 		}
 

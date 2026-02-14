@@ -161,6 +161,28 @@ func readSourceLine(path string, line int) string {
 	return lines[line]
 }
 
+// formatDiagnostics formats diagnostics for display.
+func formatDiagnostics(diags []Diagnostic, filePath, wd string) string {
+	if len(diags) == 0 {
+		return "No diagnostics found."
+	}
+
+	relPath := relativePath(filePath, wd)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Found %d diagnostic(s) in %s:\n\n", len(diags), relPath))
+	for _, d := range diags {
+		severity := DiagnosticSeverityName(d.Severity)
+		line := d.Range.Start.Line + 1
+		col := d.Range.Start.Character + 1
+		src := ""
+		if d.Source != "" {
+			src = fmt.Sprintf(" [%s]", d.Source)
+		}
+		sb.WriteString(fmt.Sprintf("  %s L%d:%d: %s%s\n", severity, line, col, d.Message, src))
+	}
+	return strings.TrimRight(sb.String(), "\n")
+}
+
 // relativePath returns the path relative to wd, or the original path if it can't be made relative.
 func relativePath(path, wd string) string {
 	rel, err := filepath.Rel(wd, path)

@@ -306,9 +306,9 @@ func isExeDev() bool {
 	return err == nil
 }
 
-// collectSkills discovers skills from default directories, project .skills dirs,
-// and the project tree.
-func collectSkills(workingDir, gitRoot string) string {
+// discoverSkills discovers skills from default directories, project .skills dirs,
+// and the project tree. Returns the deduplicated skill list.
+func discoverSkills(workingDir, gitRoot string) []skills.Skill {
 	// Start with default directories (user-level skills)
 	dirs := skills.DefaultDirs()
 
@@ -333,8 +333,12 @@ func collectSkills(workingDir, gitRoot string) string {
 		}
 	}
 
-	// Generate XML
-	return skills.ToPromptXML(foundSkills)
+	return foundSkills
+}
+
+// collectSkills discovers skills and returns their XML prompt representation.
+func collectSkills(workingDir, gitRoot string) string {
+	return skills.ToPromptXML(discoverSkills(workingDir, gitRoot))
 }
 
 func isSudoAvailable() bool {

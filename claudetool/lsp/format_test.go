@@ -203,7 +203,7 @@ func TestLanguageID(t *testing.T) {
 		{"app.jsx", "javascriptreact"},
 		{"script.py", "python"},
 		{"main.rs", "rust"},
-		{"Main.java", "java"},
+		{"Main.java", "plaintext"},
 		{"readme.txt", "plaintext"},
 	}
 	for _, tt := range tests {

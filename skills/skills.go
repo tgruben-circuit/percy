@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"unicode"
+
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -203,78 +205,16 @@ func parseFrontmatter(content string) (map[string]any, error) {
 	return parseSimpleYAML(yamlContent)
 }
 
-// parseSimpleYAML parses simple YAML frontmatter.
-// Supports: strings, and nested maps (for metadata).
+// parseSimpleYAML parses YAML frontmatter using yaml.v3.
 func parseSimpleYAML(content string) (map[string]any, error) {
-	result := make(map[string]any)
-	lines := strings.Split(content, "\n")
-
-	var currentKey string
-	var inNestedMap bool
-	nestedMap := make(map[string]any)
-
-	for _, line := range lines {
-		// Skip empty lines and comments
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
-			continue
-		}
-
-		// Check for nested map entries (indented with spaces)
-		if inNestedMap && (strings.HasPrefix(line, "  ") || strings.HasPrefix(line, "\t")) {
-			parts := strings.SplitN(trimmed, ":", 2)
-			if len(parts) == 2 {
-				key := strings.TrimSpace(parts[0])
-				value := strings.TrimSpace(parts[1])
-				value = unquoteYAML(value)
-				nestedMap[key] = value
-			}
-			continue
-		}
-
-		// If we were in a nested map, save it
-		if inNestedMap && currentKey != "" {
-			result[currentKey] = nestedMap
-			nestedMap = make(map[string]any)
-			inNestedMap = false
-		}
-
-		// Parse top-level key: value
-		parts := strings.SplitN(trimmed, ":", 2)
-		if len(parts) != 2 {
-			continue
-		}
-
-		key := strings.TrimSpace(parts[0])
-		value := strings.TrimSpace(parts[1])
-
-		if value == "" {
-			// Could be start of a nested map
-			currentKey = key
-			inNestedMap = true
-			continue
-		}
-
-		value = unquoteYAML(value)
-		result[key] = value
+	var result map[string]any
+	if err := yaml.Unmarshal([]byte(content), &result); err != nil {
+		return nil, &ValidationError{Message: "failed to parse YAML frontmatter: " + err.Error()}
 	}
-
-	// Handle final nested map
-	if inNestedMap && currentKey != "" && len(nestedMap) > 0 {
-		result[currentKey] = nestedMap
+	if result == nil {
+		result = make(map[string]any)
 	}
-
 	return result, nil
-}
-
-// unquoteYAML removes surrounding quotes from a YAML string value.
-func unquoteYAML(s string) string {
-	if len(s) >= 2 {
-		if (s[0] == '"' && s[len(s)-1] == '"') || (s[0] == '\'' && s[len(s)-1] == '\'') {
-			return s[1 : len(s)-1]
-		}
-	}
-	return s
 }
 
 // ToPromptXML generates the <available_skills> XML block for system prompts.

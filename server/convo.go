@@ -26,6 +26,7 @@ type ConversationManager struct {
 	conversationID string
 	db             *db.DB
 	memoryDB       *memory.DB
+	embedder       memory.Embedder
 	loop           *loop.Loop
 	loopCancel     context.CancelFunc
 	loopCtx        context.Context
@@ -50,10 +51,14 @@ type ConversationManager struct {
 	// onStateChange is called when the conversation state changes.
 	// This allows the server to broadcast state changes to all subscribers.
 	onStateChange func(state ConversationState)
+
+	// onConversationDone is called when the conversation loop ends.
+	// Used to enqueue indexing work via the server's backpressure queue.
+	onConversationDone func(conversationID string)
 }
 
 // NewConversationManager constructs a manager with dependencies but defers hydration until needed.
-func NewConversationManager(conversationID string, database *db.DB, memoryDB *memory.DB, baseLogger *slog.Logger, toolSetConfig claudetool.ToolSetConfig, recordMessage loop.MessageRecordFunc, onStateChange func(ConversationState)) *ConversationManager {
+func NewConversationManager(conversationID string, database *db.DB, memoryDB *memory.DB, embedder memory.Embedder, baseLogger *slog.Logger, toolSetConfig claudetool.ToolSetConfig, recordMessage loop.MessageRecordFunc, onStateChange func(ConversationState), onConversationDone func(string)) *ConversationManager {
 	logger := baseLogger
 	if logger == nil {
 		logger = slog.Default()
@@ -61,15 +66,17 @@ func NewConversationManager(conversationID string, database *db.DB, memoryDB *me
 	logger = logger.With("conversationID", conversationID)
 
 	return &ConversationManager{
-		conversationID: conversationID,
-		db:             database,
-		memoryDB:       memoryDB,
-		lastActivity:   time.Now(),
-		recordMessage:  recordMessage,
-		logger:         logger,
-		toolSetConfig:  toolSetConfig,
-		subpub:         subpub.New[StreamResponse](),
-		onStateChange:  onStateChange,
+		conversationID:     conversationID,
+		db:                 database,
+		memoryDB:           memoryDB,
+		embedder:           embedder,
+		lastActivity:       time.Now(),
+		recordMessage:      recordMessage,
+		logger:             logger,
+		toolSetConfig:      toolSetConfig,
+		subpub:             subpub.New[StreamResponse](),
+		onStateChange:      onStateChange,
+		onConversationDone: onConversationDone,
 	}
 }
 
@@ -437,6 +444,13 @@ func (cm *ConversationManager) ensureLoop(service llm.Service, modelID string) e
 		})
 	}
 
+	// Discover skills for the skill_load tool
+	gitRoot := ""
+	if gi, err := collectGitInfo(cwd); err == nil && gi != nil {
+		gitRoot = gi.Root
+	}
+	toolSetConfig.AvailableSkills = discoverSkills(cwd, gitRoot)
+
 	// Create a context with the conversation ID for LLM request recording/prefix dedup
 	baseCtx := llmhttp.WithConversationID(context.Background(), conversationID)
 	processCtx, cancel := context.WithTimeout(baseCtx, 12*time.Hour)
@@ -492,8 +506,10 @@ func (cm *ConversationManager) ensureLoop(service llm.Service, modelID string) e
 			}
 		}
 
-		// Index the conversation for memory search after the loop ends
-		cm.indexConversationForMemory(conversationID)
+		// Enqueue conversation for memory indexing via the server's backpressure queue
+		if cm.onConversationDone != nil {
+			cm.onConversationDone(conversationID)
+		}
 	}()
 
 	return nil
@@ -702,76 +718,6 @@ func (cm *ConversationManager) recordGitStateChange(ctx context.Context, state *
 
 	// Notify subscribers so the UI updates
 	go cm.notifyGitStateChange(context.WithoutCancel(ctx), createdMsg)
-}
-
-// indexConversationForMemory indexes the conversation's messages into the memory
-// database for later search. This runs fire-and-forget after the loop ends.
-func (cm *ConversationManager) indexConversationForMemory(conversationID string) {
-	if cm.memoryDB == nil {
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	// Load conversation to get the slug
-	conv, err := cm.db.GetConversationByID(ctx, conversationID)
-	if err != nil {
-		cm.logger.Warn("Memory index: failed to load conversation", "error", err)
-		return
-	}
-
-	slug := ""
-	if conv.Slug != nil {
-		slug = *conv.Slug
-	}
-
-	// Load messages from DB
-	var dbMessages []generated.Message
-	err = cm.db.Queries(ctx, func(q *generated.Queries) error {
-		var err error
-		dbMessages, err = q.ListMessagesForContext(ctx, conversationID)
-		return err
-	})
-	if err != nil {
-		cm.logger.Warn("Memory index: failed to load messages", "error", err)
-		return
-	}
-
-	// Extract text from user and agent messages
-	var messages []memory.MessageText
-	for _, msg := range dbMessages {
-		if msg.Type != string(db.MessageTypeUser) && msg.Type != string(db.MessageTypeAgent) {
-			continue
-		}
-		llmMsg, err := convertToLLMMessage(msg)
-		if err != nil {
-			continue
-		}
-		for _, content := range llmMsg.Content {
-			if content.Type == llm.ContentTypeText && content.Text != "" {
-				role := "user"
-				if msg.Type == string(db.MessageTypeAgent) {
-					role = "assistant"
-				}
-				messages = append(messages, memory.MessageText{
-					Role: role,
-					Text: content.Text,
-				})
-			}
-		}
-	}
-
-	if len(messages) == 0 {
-		return
-	}
-
-	if err := cm.memoryDB.IndexConversation(ctx, conversationID, slug, messages, nil); err != nil {
-		cm.logger.Warn("Memory index: failed to index conversation", "error", err)
-		return
-	}
-
-	cm.logger.Info("Indexed conversation for memory search", "messages", len(messages), "slug", slug)
 }
 
 // notifyGitStateChange publishes a gitinfo message to subscribers.

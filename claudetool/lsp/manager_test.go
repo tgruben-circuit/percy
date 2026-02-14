@@ -20,8 +20,8 @@ func TestManagerConfigForExt(t *testing.T) {
 		{".tsx", "typescript-language-server", false},
 		{".js", "typescript-language-server", false},
 		{".jsx", "typescript-language-server", false},
-		{".py", "", true},
-		{".rs", "", true},
+		{".py", "pyright", false},
+		{".rs", "rust-analyzer", false},
 		{".txt", "", true},
 	}
 	for _, tt := range tests {
@@ -74,7 +74,7 @@ func TestManagerGetServerNoConfig(t *testing.T) {
 	m := NewManager(func() string { return t.TempDir() })
 
 	ctx := context.Background()
-	_, err := m.GetServer(ctx, "/tmp/test.py")
+	_, err := m.GetServer(ctx, "/tmp/test.txt")
 	if err == nil {
 		t.Fatal("expected error for unconfigured extension")
 	}

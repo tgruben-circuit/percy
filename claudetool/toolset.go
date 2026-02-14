@@ -8,6 +8,7 @@ import (
 	"shelley.exe.dev/claudetool/browse"
 	"shelley.exe.dev/claudetool/lsp"
 	"shelley.exe.dev/llm"
+	"shelley.exe.dev/skills"
 )
 
 // WorkingDir is a thread-safe mutable working directory.
@@ -73,6 +74,8 @@ type ToolSetConfig struct {
 	MaxSubagentDepth int
 	// MemorySearchTool is the pre-built memory search tool. If set, it's added to the tool set.
 	MemorySearchTool *llm.Tool
+	// AvailableSkills is the list of discovered skills. If non-empty, the skill_load tool is registered.
+	AvailableSkills []skills.Skill
 }
 
 // ToolSet holds a set of tools for a single conversation.
@@ -157,6 +160,16 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 			Runner:               cfg.SubagentRunner,
 		}
 		tools = append(tools, subagentTool.Tool())
+	}
+
+	// Register todo_write tool
+	todoWriteTool := &TodoWriteTool{WorkingDir: wd}
+	tools = append(tools, todoWriteTool.Tool())
+
+	// Register skill_load tool if skills are available
+	if len(cfg.AvailableSkills) > 0 {
+		skillLoadTool := &SkillLoadTool{skills: cfg.AvailableSkills}
+		tools = append(tools, skillLoadTool.Tool())
 	}
 
 	if cfg.MemorySearchTool != nil {

@@ -117,16 +117,32 @@ func runServe(global GlobalConfig, args []string) {
 
 	toolSetConfig := setupToolSetConfig(llmManager)
 
+	// Create embedder if configured
+	var embedder memory.Embedder
+	if provider := os.Getenv("SHELLEY_EMBED_PROVIDER"); provider == "ollama" {
+		embedURL := os.Getenv("SHELLEY_EMBED_URL")
+		if embedURL == "" {
+			embedURL = "http://localhost:11434"
+		}
+		embedModel := os.Getenv("SHELLEY_EMBED_MODEL")
+		if embedModel == "" {
+			embedModel = "nomic-embed-text"
+		}
+		embedder = memory.NewOllamaEmbedder(embedURL, embedModel)
+		logger.Info("Embedder configured", "provider", provider, "url", embedURL, "model", embedModel)
+	}
+
 	// Wire up memory search tool if memory DB is available
 	if memoryDB != nil {
-		toolSetConfig.MemorySearchTool = memtool.NewMemorySearchTool(memoryDB, nil).Tool()
+		toolSetConfig.MemorySearchTool = memtool.NewMemorySearchTool(memoryDB, embedder).Tool()
 	}
 
 	// Create server
 	svr := server.NewServer(database, llmManager, toolSetConfig, logger, global.PredictableOnly, llmConfig.TerminalURL, llmConfig.DefaultModel, *requireHeader, llmConfig.Links)
 
-	// Pass memory DB to server for post-conversation indexing
+	// Pass memory DB and embedder to server for post-conversation indexing
 	svr.SetMemoryDB(memoryDB)
+	svr.SetEmbedder(embedder)
 
 	// Seed notification channels from config file if DB is empty (one-time migration)
 	svr.SeedNotificationChannelsFromConfig(llmConfig.NotificationChannels)

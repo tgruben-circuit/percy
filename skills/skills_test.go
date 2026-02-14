@@ -95,6 +95,17 @@ description: 'A skill with quoted values'
 			wantDesc:  "A skill with quoted values",
 			wantError: false,
 		},
+		{
+			name: "colons in values",
+			content: `---
+name: "install-helper"
+description: "Install with: npm install"
+---
+`,
+			wantName:  "install-helper",
+			wantDesc:  "Install with: npm install",
+			wantError: false,
+		},
 	}
 
 	for _, tt := range tests {

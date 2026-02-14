@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 // ServerConfig describes how to start an LSP server for a given language.
@@ -24,10 +25,10 @@ type ServerConfig struct {
 func DefaultServers() []ServerConfig {
 	return []ServerConfig{
 		{
-			Name:       "gopls",
-			Command:    "gopls",
-			Args:       []string{"serve"},
-			Extensions: []string{".go"},
+			Name:        "gopls",
+			Command:     "gopls",
+			Args:        []string{"serve"},
+			Extensions:  []string{".go"},
 			InstallHint: "Install gopls: go install golang.org/x/tools/gopls@latest",
 		},
 		{
@@ -36,6 +37,20 @@ func DefaultServers() []ServerConfig {
 			Args:        []string{"--stdio"},
 			Extensions:  []string{".ts", ".tsx", ".js", ".jsx"},
 			InstallHint: "Install typescript-language-server: npm install -g typescript-language-server typescript",
+		},
+		{
+			Name:        "pyright",
+			Command:     "pyright-langserver",
+			Args:        []string{"--stdio"},
+			Extensions:  []string{".py"},
+			InstallHint: "Install pyright: npm install -g pyright",
+		},
+		{
+			Name:        "rust-analyzer",
+			Command:     "rust-analyzer",
+			Args:        nil,
+			Extensions:  []string{".rs"},
+			InstallHint: "Install rust-analyzer: rustup component add rust-analyzer",
 		},
 	}
 }
@@ -48,6 +63,10 @@ type Server struct {
 
 	mu        sync.Mutex
 	openFiles map[string]int // URI -> version
+
+	diagMu     sync.RWMutex
+	diagStore  map[string][]Diagnostic    // URI -> latest diagnostics
+	diagNotify map[string]chan struct{}    // URI -> signal channel
 }
 
 // NewServer starts an LSP server and initializes it with the given root URI.
@@ -60,10 +79,26 @@ func NewServer(ctx context.Context, config ServerConfig, rootURI string) (*Serve
 	}
 
 	s := &Server{
-		client:    client,
-		config:    config,
-		rootURI:   rootURI,
-		openFiles: make(map[string]int),
+		client:     client,
+		config:     config,
+		rootURI:    rootURI,
+		openFiles:  make(map[string]int),
+		diagStore:  make(map[string][]Diagnostic),
+		diagNotify: make(map[string]chan struct{}),
+	}
+
+	// Wire up diagnostics callback
+	client.OnDiagnostics = func(uri string, diags []Diagnostic) {
+		s.diagMu.Lock()
+		s.diagStore[uri] = diags
+		ch := s.diagNotify[uri]
+		s.diagMu.Unlock()
+		if ch != nil {
+			select {
+			case ch <- struct{}{}:
+			default:
+			}
+		}
 	}
 
 	if err := s.initialize(ctx); err != nil {
@@ -216,6 +251,38 @@ func (s *Server) Shutdown() {
 	_ = s.client.Close()
 }
 
+// GetDiagnostics returns the latest diagnostics for the given URI.
+func (s *Server) GetDiagnostics(uri string) []Diagnostic {
+	s.diagMu.RLock()
+	defer s.diagMu.RUnlock()
+	return s.diagStore[uri]
+}
+
+// WaitForDiagnostics waits for diagnostic notifications for the given URI,
+// returning early when diagnostics arrive. Returns whatever is stored after
+// the timeout, which may be empty if no diagnostics were published.
+func (s *Server) WaitForDiagnostics(uri string, timeout time.Duration) []Diagnostic {
+	// Create a notification channel for this URI
+	s.diagMu.Lock()
+	ch := make(chan struct{}, 1)
+	s.diagNotify[uri] = ch
+	s.diagMu.Unlock()
+
+	defer func() {
+		s.diagMu.Lock()
+		delete(s.diagNotify, uri)
+		s.diagMu.Unlock()
+	}()
+
+	// Wait for notification or timeout
+	select {
+	case <-ch:
+	case <-time.After(timeout):
+	}
+
+	return s.GetDiagnostics(uri)
+}
+
 // fileURI converts an absolute file path to a file:// URI.
 func fileURI(path string) string {
 	u := &url.URL{Scheme: "file", Path: path}
@@ -249,12 +316,6 @@ func languageID(path string) string {
 		return "python"
 	case ".rs":
 		return "rust"
-	case ".java":
-		return "java"
-	case ".c", ".h":
-		return "c"
-	case ".cpp", ".hpp", ".cc":
-		return "cpp"
 	default:
 		return "plaintext"
 	}

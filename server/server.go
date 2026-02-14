@@ -218,6 +218,7 @@ type ConversationListUpdate struct {
 type Server struct {
 	db                  *db.DB
 	memoryDB            *memory.DB
+	embedder            memory.Embedder
 	llmManager          LLMProvider
 	toolSetConfig       claudetool.ToolSetConfig
 	activeConversations map[string]*ConversationManager
@@ -232,6 +233,7 @@ type Server struct {
 	versionChecker      *VersionChecker
 	notifDispatcher     *notifications.Dispatcher
 	shutdownCh          chan struct{} // Signals background routines to stop
+	indexQueue          chan string   // Buffered queue for conversation IDs to index
 }
 
 // NewServer creates a new server instance
@@ -250,7 +252,9 @@ func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool
 		versionChecker:      NewVersionChecker(),
 		notifDispatcher:     notifications.NewDispatcher(logger),
 		shutdownCh:          make(chan struct{}),
+		indexQueue:          make(chan string, 64),
 	}
+	go s.indexWorker()
 
 	// Set up subagent support
 	s.toolSetConfig.SubagentRunner = NewSubagentRunner(s)
@@ -264,6 +268,109 @@ func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool
 // If nil, memory indexing is silently skipped.
 func (s *Server) SetMemoryDB(mdb *memory.DB) {
 	s.memoryDB = mdb
+}
+
+// SetEmbedder sets the embedding provider for vector search and indexing.
+// If nil, vector search is disabled (FTS-only).
+func (s *Server) SetEmbedder(e memory.Embedder) {
+	s.embedder = e
+}
+
+// EnqueueIndex enqueues a conversation ID for memory indexing.
+// Non-blocking: drops the request if the queue is full.
+func (s *Server) EnqueueIndex(conversationID string) {
+	select {
+	case s.indexQueue <- conversationID:
+	default:
+		s.logger.Warn("Memory index queue full, dropping", "conversationID", conversationID)
+	}
+}
+
+// indexWorker processes the indexQueue sequentially until shutdownCh is closed,
+// then drains any remaining items.
+func (s *Server) indexWorker() {
+	for {
+		select {
+		case convID := <-s.indexQueue:
+			s.indexConversation(convID)
+		case <-s.shutdownCh:
+			// Drain remaining items
+			for {
+				select {
+				case convID := <-s.indexQueue:
+					s.indexConversation(convID)
+				default:
+					return
+				}
+			}
+		}
+	}
+}
+
+// indexConversation indexes a conversation's messages into the memory database.
+func (s *Server) indexConversation(conversationID string) {
+	if s.memoryDB == nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	conv, err := s.db.GetConversationByID(ctx, conversationID)
+	if err != nil {
+		s.logger.Warn("Memory index: failed to load conversation", "conversationID", conversationID, "error", err)
+		return
+	}
+
+	slug := ""
+	if conv.Slug != nil {
+		slug = *conv.Slug
+	}
+
+	var dbMessages []generated.Message
+	err = s.db.Queries(ctx, func(q *generated.Queries) error {
+		var err error
+		dbMessages, err = q.ListMessagesForContext(ctx, conversationID)
+		return err
+	})
+	if err != nil {
+		s.logger.Warn("Memory index: failed to load messages", "conversationID", conversationID, "error", err)
+		return
+	}
+
+	var messages []memory.MessageText
+	for _, msg := range dbMessages {
+		if msg.Type != string(db.MessageTypeUser) && msg.Type != string(db.MessageTypeAgent) {
+			continue
+		}
+		llmMsg, err := convertToLLMMessage(msg)
+		if err != nil {
+			continue
+		}
+		for _, content := range llmMsg.Content {
+			if content.Type == llm.ContentTypeText && content.Text != "" {
+				role := "user"
+				if msg.Type == string(db.MessageTypeAgent) {
+					role = "assistant"
+				}
+				messages = append(messages, memory.MessageText{
+					Role: role,
+					Text: content.Text,
+				})
+			}
+		}
+	}
+
+	if len(messages) == 0 {
+		return
+	}
+
+	if err := s.memoryDB.IndexConversation(ctx, conversationID, slug, messages, s.embedder); err != nil {
+		s.logger.Warn("Memory index: failed to index conversation", "conversationID", conversationID, "error", err)
+		return
+	}
+
+	s.logger.Info("Indexed conversation for memory search", "conversationID", conversationID, "messages", len(messages), "slug", slug)
 }
 
 // RegisterNotificationChannel adds a backend notification channel to the dispatcher.
@@ -672,7 +779,7 @@ func (s *Server) getOrCreateConversationManager(ctx context.Context, conversatio
 			s.publishConversationState(state)
 		}
 
-		manager := NewConversationManager(conversationID, s.db, s.memoryDB, s.logger, s.toolSetConfig, recordMessage, onStateChange)
+		manager := NewConversationManager(conversationID, s.db, s.memoryDB, s.embedder, s.logger, s.toolSetConfig, recordMessage, onStateChange, s.EnqueueIndex)
 		if err := manager.Hydrate(ctx); err != nil {
 			return nil, err
 		}
@@ -710,7 +817,7 @@ func (s *Server) getOrCreateSubagentConversationManager(ctx context.Context, con
 		subagentConfig := s.toolSetConfig
 		subagentConfig.SubagentDepth = s.toolSetConfig.SubagentDepth + 1
 
-		manager := NewConversationManager(conversationID, s.db, s.memoryDB, s.logger, subagentConfig, recordMessage, onStateChange)
+		manager := NewConversationManager(conversationID, s.db, s.memoryDB, s.embedder, s.logger, subagentConfig, recordMessage, onStateChange, s.EnqueueIndex)
 		if err := manager.Hydrate(ctx); err != nil {
 			return nil, err
 		}
