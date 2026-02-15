@@ -1181,8 +1181,20 @@ func (s *Server) StartWithListener(listener net.Listener) error {
 		handler = RequireHeaderMiddleware(s.requireHeader)(handler)
 	}
 
+	// Create a base context that cancels when shutdownCh is closed.
+	// This ensures SSE and other long-lived request handlers get notified
+	// of shutdown via r.Context(), so httpServer.Shutdown completes promptly.
+	baseCtx, baseCancel := context.WithCancel(context.Background())
+	go func() {
+		<-s.shutdownCh
+		baseCancel()
+	}()
+
 	httpServer := &http.Server{
 		Handler: handler,
+		BaseContext: func(_ net.Listener) context.Context {
+			return baseCtx
+		},
 	}
 
 	// Start cleanup routine
