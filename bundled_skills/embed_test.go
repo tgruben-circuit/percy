@@ -1,22 +1,38 @@
 package bundled_skills
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
-func TestEmbeddedSkillsReturnsAllThree(t *testing.T) {
+func TestEmbeddedSkillsReturnsAll(t *testing.T) {
 	skills, err := EmbeddedSkills()
 	if err != nil {
 		t.Fatalf("EmbeddedSkills() error: %v", err)
 	}
-	if len(skills) != 3 {
-		t.Fatalf("expected 3 skills, got %d", len(skills))
+	if len(skills) != 17 {
+		t.Fatalf("expected 17 skills, got %d", len(skills))
 	}
 
 	want := map[string]bool{
-		"claude-code": false,
-		"opencode":    false,
-		"gemini-cli":  false,
+		"claude-code":                  false,
+		"opencode":                     false,
+		"gemini-cli":                   false,
+		"brainstorming":                false,
+		"dispatching-parallel-agents":  false,
+		"executing-plans":              false,
+		"finishing-a-development-branch": false,
+		"receiving-code-review":        false,
+		"requesting-code-review":       false,
+		"subagent-driven-development":  false,
+		"systematic-debugging":         false,
+		"test-driven-development":      false,
+		"using-git-worktrees":          false,
+		"using-superpowers":            false,
+		"verification-before-completion": false,
+		"writing-plans":                false,
+		"writing-skills":               false,
 	}
 	for _, s := range skills {
 		if _, ok := want[s.Name]; !ok {
@@ -71,4 +87,27 @@ func TestEmbeddedSkillsIdempotent(t *testing.T) {
 			t.Errorf("skill %d path mismatch: first=%q, second=%q", i, first[i].Path, second[i].Path)
 		}
 	}
+}
+
+func TestSupportingFilesExtracted(t *testing.T) {
+	skills, err := EmbeddedSkills()
+	if err != nil {
+		t.Fatalf("EmbeddedSkills() error: %v", err)
+	}
+
+	// Find subagent-driven-development and check its supporting files exist.
+	for _, s := range skills {
+		if s.Name != "subagent-driven-development" {
+			continue
+		}
+		dir := filepath.Dir(s.Path)
+		for _, f := range []string{"implementer-prompt.md", "spec-reviewer-prompt.md", "code-quality-reviewer-prompt.md"} {
+			path := filepath.Join(dir, f)
+			if _, err := os.Stat(path); err != nil {
+				t.Errorf("supporting file %s not extracted: %v", f, err)
+			}
+		}
+		return
+	}
+	t.Fatal("subagent-driven-development skill not found")
 }

@@ -6,6 +6,7 @@ package bundled_skills
 import (
 	"embed"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -13,8 +14,8 @@ import (
 	"shelley.exe.dev/skills"
 )
 
-//go:embed */SKILL.md
-var fs embed.FS
+//go:embed *
+var skillsFS embed.FS
 
 var (
 	once      sync.Once
@@ -38,7 +39,7 @@ func EmbeddedSkills() ([]skills.Skill, error) {
 }
 
 func loadEmbeddedSkills() ([]skills.Skill, error) {
-	entries, err := fs.ReadDir(".")
+	entries, err := skillsFS.ReadDir(".")
 	if err != nil {
 		return nil, fmt.Errorf("read embedded skills: %w", err)
 	}
@@ -54,21 +55,26 @@ func loadEmbeddedSkills() ([]skills.Skill, error) {
 			continue
 		}
 		name := entry.Name()
-		data, err := fs.ReadFile(filepath.Join(name, "SKILL.md"))
-		if err != nil {
-			continue
+
+		// Extract all files in this skill directory to temp dir.
+		if err := fs.WalkDir(skillsFS, name, func(path string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() {
+				return err
+			}
+			data, err := skillsFS.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			dest := filepath.Join(dir, path)
+			if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+				return err
+			}
+			return os.WriteFile(dest, data, 0o644)
+		}); err != nil {
+			return nil, fmt.Errorf("extract %s: %w", name, err)
 		}
 
-		skillDir := filepath.Join(dir, name)
-		if err := os.MkdirAll(skillDir, 0o755); err != nil {
-			return nil, fmt.Errorf("mkdir %s: %w", skillDir, err)
-		}
-
-		skillPath := filepath.Join(skillDir, "SKILL.md")
-		if err := os.WriteFile(skillPath, data, 0o644); err != nil {
-			return nil, fmt.Errorf("write %s: %w", skillPath, err)
-		}
-
+		skillPath := filepath.Join(dir, name, "SKILL.md")
 		skill, err := skills.Parse(skillPath)
 		if err != nil {
 			return nil, fmt.Errorf("parse %s: %w", name, err)
