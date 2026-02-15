@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	DefaultMaxTokens = 8192
+	DefaultMaxTokens = 16384
 
 	OpenAIURL    = "https://api.openai.com/v1"
 	FireworksURL = "https://api.fireworks.ai/inference/v1"

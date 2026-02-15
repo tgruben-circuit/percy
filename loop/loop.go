@@ -52,7 +52,8 @@ type Loop struct {
 	workingDir       string
 	onGitStateChange GitStateChangeFunc
 	getWorkingDir    func() string
-	lastGitState     *gitstate.GitState
+	lastGitState      *gitstate.GitState
+	truncationRetries int
 }
 
 // NewLoop creates a new Loop instance with the provided configuration
@@ -141,6 +142,7 @@ func (l *Loop) Go(ctx context.Context) error {
 			// Add queued messages to history (they are already recorded to DB by ConversationManager)
 			l.history = append(l.history, l.messageQueue...)
 			l.messageQueue = l.messageQueue[:0] // Clear queue
+			l.truncationRetries = 0
 		}
 		l.mu.Unlock()
 
@@ -178,6 +180,7 @@ func (l *Loop) ProcessOneTurn(ctx context.Context) error {
 		// Add queued messages to history (they are already recorded to DB by ConversationManager)
 		l.history = append(l.history, l.messageQueue...)
 		l.messageQueue = nil
+		l.truncationRetries = 0
 	}
 	l.mu.Unlock()
 
@@ -358,8 +361,11 @@ func (l *Loop) checkGitStateChange(ctx context.Context) {
 
 // handleMaxTokensTruncation handles the case where the LLM response was truncated
 // due to hitting the maximum output token limit. It records the truncated message
-// for cost tracking (excluded from context) and an error message for the user.
+// for cost tracking (excluded from context) and retries up to 2 times before
+// giving up with an error message.
 func (l *Loop) handleMaxTokensTruncation(ctx context.Context, resp *llm.Response) error {
+	const maxTruncationRetries = 2
+
 	// Record the truncated message for cost tracking, but mark it as excluded from context.
 	// This preserves billing information without confusing the LLM on future turns.
 	truncatedMessage := resp.ToMessage()
@@ -374,16 +380,62 @@ func (l *Loop) handleMaxTokensTruncation(ctx context.Context, resp *llm.Response
 		l.logger.Error("failed to record truncated message", "error", err)
 	}
 
-	// Record a truncation error message with EndOfTurn=true to properly signal end of turn.
+	l.mu.Lock()
+	l.truncationRetries++
+	retries := l.truncationRetries
+	l.mu.Unlock()
+
+	if retries <= maxTruncationRetries {
+		l.logger.Warn("retrying after max tokens truncation", "retry", retries, "max_retries", maxTruncationRetries)
+
+		// Add assistant placeholder to maintain message alternation
+		placeholderMessage := llm.Message{
+			Role: llm.MessageRoleAssistant,
+			Content: []llm.Content{
+				{
+					Type: llm.ContentTypeText,
+					Text: "[My response was too long. Let me retry more concisely.]",
+				},
+			},
+		}
+
+		// Add user guidance message
+		guidanceMessage := llm.Message{
+			Role: llm.MessageRoleUser,
+			Content: []llm.Content{
+				{
+					Type: llm.ContentTypeText,
+					Text: "[SYSTEM: Your response was truncated. Retry with smaller output. Break file operations into multiple patches.]",
+				},
+			},
+		}
+
+		l.mu.Lock()
+		l.history = append(l.history, placeholderMessage, guidanceMessage)
+		l.mu.Unlock()
+
+		if err := l.recordMessage(ctx, placeholderMessage, llm.Usage{}); err != nil {
+			l.logger.Error("failed to record placeholder message", "error", err)
+		}
+		if err := l.recordMessage(ctx, guidanceMessage, llm.Usage{}); err != nil {
+			l.logger.Error("failed to record guidance message", "error", err)
+		}
+
+		return l.processLLMRequest(ctx)
+	}
+
+	// Retries exhausted - end the turn with error
+	l.logger.Error("max tokens truncation retries exhausted", "retries", retries)
+
 	errorMessage := llm.Message{
 		Role: llm.MessageRoleAssistant,
 		Content: []llm.Content{
 			{
 				Type: llm.ContentTypeText,
-				Text: "[SYSTEM ERROR: Your previous response was truncated because it exceeded the maximum output token limit. " +
-					"Any tool calls in that response were lost. Please retry with smaller, incremental changes. " +
-					"For file operations, break large changes into multiple smaller patches. " +
-					"The user can ask you to continue if needed.]",
+				Text: "[SYSTEM ERROR: Your response was truncated due to the maximum output token limit. " +
+					"Automatic retries were attempted but the response is still too long. " +
+					"Please retry with smaller, incremental changes. " +
+					"For file operations, break large changes into multiple smaller patches.]",
 			},
 		},
 		EndOfTurn: true,
@@ -394,12 +446,10 @@ func (l *Loop) handleMaxTokensTruncation(ctx context.Context, resp *llm.Response
 	l.history = append(l.history, errorMessage)
 	l.mu.Unlock()
 
-	// Record the truncation error message
 	if err := l.recordMessage(ctx, errorMessage, llm.Usage{}); err != nil {
 		l.logger.Error("failed to record truncation error message", "error", err)
 	}
 
-	// End the turn - don't automatically continue
 	l.checkGitStateChange(ctx)
 	return nil
 }

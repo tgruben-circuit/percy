@@ -21,7 +21,7 @@ const (
 	DefaultModel = Claude45Sonnet
 	// See https://docs.anthropic.com/en/docs/about-claude/models/all-models for
 	// current maximums. There's currently a flag to enable 128k output (output-128k-2025-02-19)
-	DefaultMaxTokens = 8192
+	DefaultMaxTokens = 16384
 	APIKeyEnv        = "ANTHROPIC_API_KEY"
 	DefaultURL       = "https://api.anthropic.com/v1/messages"
 )
@@ -511,6 +511,7 @@ func (s *Service) Do(ctx context.Context, ir *llm.Request) (*llm.Response, error
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-API-Key", s.APIKey)
 		req.Header.Set("Anthropic-Version", "2023-06-01")
+		req.Header.Set("anthropic-beta", "output-128k-2025-02-19")
 
 		resp, err := httpc.Do(req)
 		if err != nil {

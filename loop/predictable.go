@@ -32,6 +32,8 @@ type PredictableService struct {
 	// Recent requests for testing inspection
 	recentRequests []*llm.Request
 	responseDelay  time.Duration
+	// AlwaysMaxTokens makes every response return StopReasonMaxTokens for testing truncation retries.
+	AlwaysMaxTokens bool
 }
 
 // NewPredictableService creates a new predictable LLM service
@@ -71,6 +73,7 @@ func (s *PredictableService) Do(ctx context.Context, req *llm.Request) (*llm.Res
 	}
 	s.mu.Unlock()
 
+	alwaysMaxTokens := s.AlwaysMaxTokens
 	if delay > 0 {
 		select {
 		case <-time.After(delay):
@@ -81,6 +84,10 @@ func (s *PredictableService) Do(ctx context.Context, req *llm.Request) (*llm.Res
 
 	// Calculate input token count based on the request content
 	inputTokens := s.countRequestTokens(req)
+
+	if alwaysMaxTokens {
+		return s.makeMaxTokensResponse("This response was truncated due to max tokens limit.", inputTokens), nil
+	}
 
 	// Extract the text content from the last user message
 	var inputText string
