@@ -27,13 +27,13 @@ Results from both are normalized to [0,1] and merged with weighted scoring (0.4 
 
 ### Embedding Providers
 
-Vector embeddings are optional. Three backends are supported:
+Vector embeddings are optional. Set `PERCY_EMBED_PROVIDER` to choose a backend:
 
 | Provider | Config | Description |
 |----------|--------|-------------|
-| `auto` (default) | Reuses configured LLM provider | Uses OpenAI/Gemini embedding endpoints. Falls back to FTS-only for Anthropic. |
-| `ollama` | Local Ollama instance | Calls `localhost:11434/api/embed` with a model like `nomic-embed-text`. No API key needed. |
-| `none` | No embeddings | FTS5-only search. Zero external dependencies. |
+| *(unset)* (default) | Auto-detect | Uses OpenAI if `OPENAI_API_KEY` is set, otherwise FTS-only. |
+| `openai` | `OPENAI_API_KEY` | OpenAI `text-embedding-3-small` (1536 dimensions). |
+| `ollama` | `PERCY_EMBED_URL`, `PERCY_EMBED_MODEL` | Local Ollama instance. Calls `localhost:11434/api/embed` with a model like `nomic-embed-text`. No API key needed. |
 
 ## Architecture
 
@@ -44,6 +44,7 @@ memory/
   chunk.go           Text chunking (messages + markdown)
   embed.go           Embedder interface, cosine similarity, BLOB serialization
   embed_ollama.go    Ollama embedding provider
+  embed_openai.go    OpenAI embedding provider
   search.go          FTS5, vector, and hybrid search
   index.go           Indexing pipeline (conversations + files)
 

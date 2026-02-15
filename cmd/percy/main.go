@@ -122,7 +122,8 @@ func runServe(global GlobalConfig, args []string) {
 
 	// Create embedder if configured
 	var embedder memory.Embedder
-	if provider := os.Getenv("PERCY_EMBED_PROVIDER"); provider == "ollama" {
+	switch provider := os.Getenv("PERCY_EMBED_PROVIDER"); provider {
+	case "ollama":
 		embedURL := os.Getenv("PERCY_EMBED_URL")
 		if embedURL == "" {
 			embedURL = "http://localhost:11434"
@@ -132,7 +133,21 @@ func runServe(global GlobalConfig, args []string) {
 			embedModel = "nomic-embed-text"
 		}
 		embedder = memory.NewOllamaEmbedder(embedURL, embedModel)
-		logger.Info("Embedder configured", "provider", provider, "url", embedURL, "model", embedModel)
+		logger.Info("Embedder configured", "provider", "ollama", "url", embedURL, "model", embedModel)
+	case "openai":
+		apiKey := os.Getenv("OPENAI_API_KEY")
+		if apiKey == "" {
+			logger.Warn("PERCY_EMBED_PROVIDER=openai but OPENAI_API_KEY is not set")
+		} else {
+			embedder = memory.NewOpenAIEmbedder(apiKey)
+			logger.Info("Embedder configured", "provider", "openai", "model", "text-embedding-3-small")
+		}
+	case "":
+		// Auto-detect: use OpenAI if an API key is available
+		if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
+			embedder = memory.NewOpenAIEmbedder(apiKey)
+			logger.Info("Embedder configured", "provider", "openai (auto-detected)", "model", "text-embedding-3-small")
+		}
 	}
 
 	// Wire up memory search tool if memory DB is available
