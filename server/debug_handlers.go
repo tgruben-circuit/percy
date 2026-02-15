@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"shelley.exe.dev/ui"
+	"github.com/tgruben-circuit/percy/ui"
 )
 
 // handleDebugConversationsPage serves the conversations list debug page

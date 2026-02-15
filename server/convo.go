@@ -8,15 +8,15 @@ import (
 	"sync"
 	"time"
 
-	"shelley.exe.dev/claudetool"
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/gitstate"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/llm/llmhttp"
-	"shelley.exe.dev/loop"
-	"shelley.exe.dev/memory"
-	"shelley.exe.dev/subpub"
+	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/gitstate"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/llm/llmhttp"
+	"github.com/tgruben-circuit/percy/loop"
+	"github.com/tgruben-circuit/percy/memory"
+	"github.com/tgruben-circuit/percy/subpub"
 )
 
 var errConversationModelMismatch = errors.New("conversation model mismatch")

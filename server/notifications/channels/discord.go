@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"shelley.exe.dev/server/notifications"
+	"github.com/tgruben-circuit/percy/server/notifications"
 )
 
 func init() {

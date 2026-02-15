@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/claudetool"
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/loop"
+	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/loop"
 )
 
 // flusherRecorder wraps httptest.ResponseRecorder to implement http.Flusher

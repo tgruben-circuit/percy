@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"shelley.exe.dev/version"
+	"github.com/tgruben-circuit/percy/version"
 )
 
 // contextKey is the type for context keys in this package.
@@ -63,7 +63,7 @@ func ProviderFromContext(ctx context.Context) string {
 // Recorder is called after each LLM HTTP request with the request/response details.
 type Recorder func(ctx context.Context, url string, requestBody, responseBody []byte, statusCode int, err error, duration time.Duration)
 
-// Transport wraps an http.RoundTripper to add Shelley-specific headers
+// Transport wraps an http.RoundTripper to add Percy-specific headers
 // and optionally record requests to a database.
 type Transport struct {
 	Base     http.RoundTripper
@@ -77,9 +77,9 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Clone the request to avoid modifying the original
 	req = req.Clone(req.Context())
 
-	// Add User-Agent with Shelley version
+	// Add User-Agent with Percy version
 	info := version.GetInfo()
-	userAgent := "Shelley"
+	userAgent := "Percy"
 	if info.Commit != "" {
 		userAgent += "/" + info.Commit[:min(8, len(info.Commit))]
 	}
@@ -87,7 +87,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	// Add conversation ID header if present
 	if conversationID := ConversationIDFromContext(req.Context()); conversationID != "" {
-		req.Header.Set("Shelley-Conversation-Id", conversationID)
+		req.Header.Set("Percy-Conversation-Id", conversationID)
 
 		// Add x-session-affinity header for Fireworks to enable prompt caching
 		if ProviderFromContext(req.Context()) == "fireworks" {
@@ -133,7 +133,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return resp, err
 }
 
-// NewClient creates an http.Client with Shelley headers and optional recording.
+// NewClient creates an http.Client with Percy headers and optional recording.
 func NewClient(base *http.Client, recorder Recorder) *http.Client {
 	if base == nil {
 		base = http.DefaultClient

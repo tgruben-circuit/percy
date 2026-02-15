@@ -87,7 +87,7 @@ function updateUrlWithSlug(conversation: Conversation | undefined) {
 }
 
 function updatePageTitle(conversation: Conversation | undefined) {
-  const hostname = window.__SHELLEY_INIT__?.hostname;
+  const hostname = window.__PERCY_INIT__?.hostname;
   const parts: string[] = [];
 
   if (conversation?.slug && !isGeneratedId(conversation.slug)) {
@@ -96,7 +96,7 @@ function updatePageTitle(conversation: Conversation | undefined) {
   if (hostname) {
     parts.push(hostname);
   }
-  parts.push("Shelley Agent");
+  parts.push("Percy");
 
   document.title = parts.join(" - ");
 }
@@ -311,7 +311,7 @@ function App() {
   const startNewConversation = () => {
     // Save the current conversation's cwd to localStorage so the new conversation picks it up
     if (currentConversation?.cwd) {
-      localStorage.setItem("shelley_selected_cwd", currentConversation.cwd);
+      localStorage.setItem("percy_selected_cwd", currentConversation.cwd);
     }
     // Clear the current conversation - a new one will be created when the user sends their first message
     setCurrentConversationId(null);

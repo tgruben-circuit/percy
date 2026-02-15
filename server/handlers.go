@@ -19,14 +19,14 @@ import (
 	"strings"
 	"time"
 
-	"shelley.exe.dev/claudetool/browse"
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/models"
-	"shelley.exe.dev/slug"
-	"shelley.exe.dev/ui"
-	"shelley.exe.dev/version"
+	"github.com/tgruben-circuit/percy/claudetool/browse"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/models"
+	"github.com/tgruben-circuit/percy/slug"
+	"github.com/tgruben-circuit/percy/ui"
+	"github.com/tgruben-circuit/percy/version"
 )
 
 // handleRead serves files from limited allowed locations via /api/read?path=
@@ -434,7 +434,7 @@ func (s *Server) serveIndexWithInit(w http.ResponseWriter, r *http.Request, fs h
 	faviconLink := fmt.Sprintf(`<link rel="icon" type="image/svg+xml" href="%s"/>`, faviconDataURI)
 
 	// Inject the script tag and favicon before </head>
-	initScript := fmt.Sprintf(`<script>window.__SHELLEY_INIT__=%s;</script>`, initJSON)
+	initScript := fmt.Sprintf(`<script>window.__PERCY_INIT__=%s;</script>`, initJSON)
 	injection := faviconLink + initScript
 	modifiedHTML := strings.Replace(string(indexHTML), "</head>", injection+"</head>", 1)
 
@@ -1454,7 +1454,7 @@ func (s *Server) handleVersionChangelog(w http.ResponseWriter, r *http.Request) 
 	_ = json.NewEncoder(w).Encode(commits) //nolint:errchkjson // best-effort HTTP response
 }
 
-// handleUpgrade performs a self-update of the Shelley binary
+// handleUpgrade performs a self-update of the Percy binary
 // If restart=true query parameter is set, it will also restart after upgrade
 func (s *Server) handleUpgrade(w http.ResponseWriter, r *http.Request) {
 	err := s.versionChecker.DoUpgrade(r.Context())
@@ -1479,7 +1479,7 @@ func (s *Server) handleUpgrade(w http.ResponseWriter, r *http.Request) {
 		// Exit after a short delay to allow response to be sent
 		go func() {
 			time.Sleep(100 * time.Millisecond)
-			s.logger.Info("Exiting Shelley after upgrade")
+			s.logger.Info("Exiting Percy after upgrade")
 			os.Exit(0)
 		}()
 	} else {
@@ -1501,7 +1501,7 @@ func (s *Server) handleExit(w http.ResponseWriter, r *http.Request) {
 	// Exit after a short delay to allow response to be sent
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		s.logger.Info("Exiting Shelley via /exit endpoint")
+		s.logger.Info("Exiting Percy via /exit endpoint")
 		os.Exit(0)
 	}()
 }

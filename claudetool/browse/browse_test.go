@@ -22,7 +22,7 @@ import (
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 	"github.com/go-json-experiment/json/jsontext"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 func TestToolCreation(t *testing.T) {

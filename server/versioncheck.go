@@ -21,10 +21,10 @@ import (
 
 	"github.com/fynelabs/selfupdate"
 
-	"shelley.exe.dev/version"
+	"github.com/tgruben-circuit/percy/version"
 )
 
-// VersionChecker checks for new versions of Shelley from GitHub releases.
+// VersionChecker checks for new versions of Percy from GitHub releases.
 type VersionChecker struct {
 	mu          sync.Mutex
 	lastCheck   time.Time
@@ -83,16 +83,16 @@ type StaticCommitInfo struct {
 const (
 	// staticMetadataURL is the base URL for version metadata on GitHub Pages.
 	// This avoids GitHub API rate limits.
-	staticMetadataURL = "https://boldsoftware.github.io/shelley"
+	staticMetadataURL = "https://tgruben-circuit.github.io/percy"
 )
 
 // NewVersionChecker creates a new version checker.
 func NewVersionChecker() *VersionChecker {
-	skipCheck := os.Getenv("SHELLEY_SKIP_VERSION_CHECK") == "true"
+	skipCheck := os.Getenv("PERCY_SKIP_VERSION_CHECK") == "true"
 	return &VersionChecker{
 		skipCheck:   skipCheck,
-		githubOwner: "boldsoftware",
-		githubRepo:  "shelley",
+		githubOwner: "tgruben-circuit",
+		githubRepo:  "percy",
 	}
 }
 
@@ -205,7 +205,7 @@ func (vc *VersionChecker) FetchChangelog(ctx context.Context, currentTag, latest
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "Shelley-VersionChecker")
+	req.Header.Set("User-Agent", "Percy-VersionChecker")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -316,7 +316,7 @@ func (vc *VersionChecker) fetchLatestRelease(ctx context.Context) (*ReleaseInfo,
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "Shelley-VersionChecker")
+	req.Header.Set("User-Agent", "Percy-VersionChecker")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -477,7 +477,7 @@ func (vc *VersionChecker) doSudoUpgrade(binaryData []byte) error {
 	}
 
 	// Write the new binary to a temp file
-	tmpFile, err := os.CreateTemp("", "shelley-upgrade-*")
+	tmpFile, err := os.CreateTemp("", "percy-upgrade-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
@@ -567,7 +567,7 @@ func (vc *VersionChecker) fetchExpectedChecksum(ctx context.Context, release *Re
 	}
 
 	// Parse checksums.txt (format: "checksum  filename")
-	expectedBinaryName := fmt.Sprintf("shelley_%s_%s", runtime.GOOS, runtime.GOARCH)
+	expectedBinaryName := fmt.Sprintf("percy_%s_%s", runtime.GOOS, runtime.GOARCH)
 
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {

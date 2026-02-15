@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // TestContextWindowSizeCalculation tests that the context window size is correctly

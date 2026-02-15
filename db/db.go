@@ -1,4 +1,4 @@
-// Package db provides database operations for the Shelley AI coding agent.
+// Package db provides database operations for the Percy AI coding agent.
 package db
 
 //go:generate go tool github.com/sqlc-dev/sqlc/cmd/sqlc generate -f ../sqlc.yaml
@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"shelley.exe.dev/db/generated"
+	"github.com/tgruben-circuit/percy/db/generated"
 
 	_ "modernc.org/sqlite"
 )

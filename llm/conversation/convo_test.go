@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/llm/ant"
-	"shelley.exe.dev/loop"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/llm/ant"
+	"github.com/tgruben-circuit/percy/loop"
 	"sketch.dev/httprr"
 )
 
@@ -26,7 +26,7 @@ func TestBasicConvo(t *testing.T) {
 	rr.ScrubReq(func(req *http.Request) error {
 		req.Header.Del("x-api-key")
 		req.Header.Del("User-Agent")
-		req.Header.Del("Shelley-Conversation-Id")
+		req.Header.Del("Percy-Conversation-Id")
 		return nil
 	})
 

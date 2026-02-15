@@ -13,9 +13,9 @@ import (
 	"strings"
 	"testing"
 
-	"shelley.exe.dev/claudetool"
-	"shelley.exe.dev/claudetool/browse"
-	"shelley.exe.dev/loop"
+	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/claudetool/browse"
+	"github.com/tgruben-circuit/percy/loop"
 )
 
 func TestUploadEndpoint(t *testing.T) {

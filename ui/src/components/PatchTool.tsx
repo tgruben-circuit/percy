@@ -5,7 +5,7 @@ import { LLMContent } from "../types";
 import { isDarkModeActive } from "../services/theme";
 
 // LocalStorage key for side-by-side preference
-const STORAGE_KEY_SIDE_BY_SIDE = "shelley-diff-side-by-side";
+const STORAGE_KEY_SIDE_BY_SIDE = "percy-diff-side-by-side";
 
 // Get saved side-by-side preference (default: true for desktop)
 function getSideBySidePreference(): boolean {

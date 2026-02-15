@@ -11,15 +11,15 @@ import (
 	"strconv"
 	"strings"
 
-	"shelley.exe.dev/claudetool"
-	memtool "shelley.exe.dev/claudetool/memory"
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/memory"
-	"shelley.exe.dev/models"
-	"shelley.exe.dev/server"
-	_ "shelley.exe.dev/server/notifications/channels" // register channel types
-	"shelley.exe.dev/templates"
-	"shelley.exe.dev/version"
+	"github.com/tgruben-circuit/percy/claudetool"
+	memtool "github.com/tgruben-circuit/percy/claudetool/memory"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/memory"
+	"github.com/tgruben-circuit/percy/models"
+	"github.com/tgruben-circuit/percy/server"
+	_ "github.com/tgruben-circuit/percy/server/notifications/channels" // register channel types
+	"github.com/tgruben-circuit/percy/templates"
+	"github.com/tgruben-circuit/percy/version"
 )
 
 type GlobalConfig struct {
@@ -36,11 +36,11 @@ func main() {
 	// Define global flags
 	var global GlobalConfig
 	defaultModelID := models.Default().ID
-	flag.StringVar(&global.DBPath, "db", "shelley.db", "Path to SQLite database file")
+	flag.StringVar(&global.DBPath, "db", "percy.db", "Path to SQLite database file")
 	flag.BoolVar(&global.Debug, "debug", false, "Enable debug logging")
 	flag.StringVar(&global.Model, "model", defaultModelID, "LLM model to use (use 'predictable' for testing)")
 	flag.BoolVar(&global.PredictableOnly, "predictable-only", false, "Use only the predictable service, ignoring all other models")
-	flag.StringVar(&global.ConfigPath, "config", "", "Path to shelley.json configuration file (optional)")
+	flag.StringVar(&global.ConfigPath, "config", "", "Path to percy.json configuration file (optional)")
 	flag.StringVar(&global.DefaultModel, "default-model", defaultModelID, "Default model for web UI")
 
 	// Custom usage function
@@ -122,12 +122,12 @@ func runServe(global GlobalConfig, args []string) {
 
 	// Create embedder if configured
 	var embedder memory.Embedder
-	if provider := os.Getenv("SHELLEY_EMBED_PROVIDER"); provider == "ollama" {
-		embedURL := os.Getenv("SHELLEY_EMBED_URL")
+	if provider := os.Getenv("PERCY_EMBED_PROVIDER"); provider == "ollama" {
+		embedURL := os.Getenv("PERCY_EMBED_URL")
 		if embedURL == "" {
 			embedURL = "http://localhost:11434"
 		}
-		embedModel := os.Getenv("SHELLEY_EMBED_MODEL")
+		embedModel := os.Getenv("PERCY_EMBED_MODEL")
 		if embedModel == "" {
 			embedModel = "nomic-embed-text"
 		}
@@ -202,7 +202,7 @@ func setupDatabase(dbPath string, logger *slog.Logger) *db.DB {
 func runUnpackTemplate(args []string) {
 	fs := flag.NewFlagSet("unpack-template", flag.ExitOnError)
 	fs.Usage = func() {
-		fmt.Fprintf(fs.Output(), "Usage: shelley unpack-template <template-name> <directory>\n\n")
+		fmt.Fprintf(fs.Output(), "Usage: percy unpack-template <template-name> <directory>\n\n")
 		fmt.Fprintf(fs.Output(), "Unpacks a project template to the specified directory.\n\n")
 		fmt.Fprintf(fs.Output(), "Available templates:\n")
 		names, err := templates.List()

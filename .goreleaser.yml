@@ -5,9 +5,9 @@ before:
     - go mod tidy
 
 builds:
-  - id: shelley
-    binary: shelley
-    main: ./cmd/shelley
+  - id: percy
+    binary: percy
+    main: ./cmd/percy
     env:
       - CGO_ENABLED=0
     goos:
@@ -18,11 +18,11 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X shelley.exe.dev/version.Version={{ .Version }}
-      - -X shelley.exe.dev/version.Tag={{ .Tag }}
+      - -X github.com/tgruben-circuit/percy/version.Version={{ .Version }}
+      - -X github.com/tgruben-circuit/percy/version.Tag={{ .Tag }}
 
 archives:
-  - id: shelley
+  - id: percy
     formats:
       - binary
     name_template: >-
@@ -47,21 +47,21 @@ changelog:
 
 release:
   github:
-    owner: boldsoftware
-    name: shelley
+    owner: tgruben-circuit
+    name: percy
   draft: false
   prerelease: auto
 
 homebrew_casks:
-  - name: shelley
+  - name: percy
     binaries:
-      - shelley
+      - percy
     repository:
-      owner: boldsoftware
+      owner: tgruben-circuit
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Casks
-    homepage: https://github.com/boldsoftware/shelley
+    homepage: https://github.com/tgruben-circuit/percy
     description: "A mobile-friendly, web-based, multi-modal coding agent"
     hooks:
       post:

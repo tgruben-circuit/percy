@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 // Test that URLs in agent responses are properly linkified
-// This test requires the shelley server to be running with predictable model
+// This test requires the percy server to be running with predictable model
 
 test("URLs in agent responses should be linkified", async ({ page }) => {
   // Navigate to the app

@@ -20,7 +20,7 @@ interface FormData {
 }
 
 function getChannelTypes(): ChannelTypeInfo[] {
-  return window.__SHELLEY_INIT__?.notification_channel_types || [];
+  return window.__PERCY_INIT__?.notification_channel_types || [];
 }
 
 const emptyForm: FormData = {

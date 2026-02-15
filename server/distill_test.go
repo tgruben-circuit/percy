@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 func TestDistillConversation(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 // is included in the generated system prompt.
 func TestSystemPromptIncludesCwdGuidanceFiles(t *testing.T) {
 	// Create a temp directory to serve as our "context directory"
-	tmpDir, err := os.MkdirTemp("", "shelley_test")
+	tmpDir, err := os.MkdirTemp("", "percy_test")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -67,10 +67,10 @@ func TestSystemPromptEmptyCwdFallsBackToCurrentDir(t *testing.T) {
 
 // TestSystemPromptDetectsGitInWorkingDir verifies that the system prompt
 // correctly detects a git repo in the specified working directory, not the
-// process's cwd. Regression test for https://github.com/boldsoftware/shelley/issues/71
+// process's cwd. Regression test for https://github.com/tgruben-circuit/percy/issues/71
 func TestSystemPromptDetectsGitInWorkingDir(t *testing.T) {
 	// Create a temp dir with a git repo
-	tmpDir, err := os.MkdirTemp("", "shelley_git_test")
+	tmpDir, err := os.MkdirTemp("", "percy_git_test")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -109,7 +109,7 @@ func TestSystemPromptDetectsGitInWorkingDir(t *testing.T) {
 // TestSystemPromptIncludesSkillsFromAnyWorkingDir verifies that user-level
 // skills (e.g. from ~/.config/agents/skills) appear in the system prompt
 // regardless of the conversation's working directory.
-// Regression test for https://github.com/boldsoftware/shelley/issues/83
+// Regression test for https://github.com/tgruben-circuit/percy/issues/83
 func TestSystemPromptIncludesSkillsFromAnyWorkingDir(t *testing.T) {
 	// Create a fake home with a skill
 	tmpHome := t.TempDir()
@@ -165,7 +165,7 @@ func TestSystemPromptIncludesBundledSkills(t *testing.T) {
 func TestUserSkillOverridesBundledSkill(t *testing.T) {
 	// Create a user-level skill with the same name as a bundled one
 	tmpHome := t.TempDir()
-	skillDir := filepath.Join(tmpHome, ".config", "shelley", "claude-code")
+	skillDir := filepath.Join(tmpHome, ".config", "percy", "claude-code")
 	if err := os.MkdirAll(skillDir, 0o755); err != nil {
 		t.Fatal(err)
 	}

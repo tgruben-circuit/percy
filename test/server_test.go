@@ -17,15 +17,15 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/claudetool"
-	"shelley.exe.dev/claudetool/browse"
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/loop"
-	"shelley.exe.dev/models"
-	"shelley.exe.dev/server"
-	"shelley.exe.dev/slug"
+	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/claudetool/browse"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/loop"
+	"github.com/tgruben-circuit/percy/models"
+	"github.com/tgruben-circuit/percy/server"
+	"github.com/tgruben-circuit/percy/slug"
 )
 
 func TestServerEndToEnd(t *testing.T) {
@@ -338,8 +338,8 @@ func TestPredictableServiceWithTools(t *testing.T) {
 		t.Fatalf("First call failed: %v", err)
 	}
 
-	if !strings.Contains(resp1.Content[0].Text, "Shelley") {
-		t.Fatal("Expected greeting to mention Shelley")
+	if !strings.Contains(resp1.Content[0].Text, "Percy") {
+		t.Fatal("Expected greeting to mention Percy")
 	}
 
 	// Second call should return tool use (bash command)
@@ -796,8 +796,8 @@ func TestSystemPromptSentToLLM(t *testing.T) {
 		for _, sys := range lastReq.System {
 			systemText += sys.Text
 		}
-		if !strings.Contains(systemText, "Shelley") {
-			t.Errorf("System prompt doesn't contain 'Shelley': %s", systemText)
+		if !strings.Contains(systemText, "Percy") {
+			t.Errorf("System prompt doesn't contain 'Percy': %s", systemText)
 		}
 		if !strings.Contains(systemText, "coding agent") {
 			t.Errorf("System prompt doesn't contain 'coding agent': %s", systemText)
@@ -897,8 +897,8 @@ func TestSystemPromptSentToLLM(t *testing.T) {
 		for _, sys := range lastReq.System {
 			systemText += sys.Text
 		}
-		if !strings.Contains(systemText, "Shelley") {
-			t.Errorf("System prompt doesn't contain 'Shelley' in subsequent request: %s", systemText)
+		if !strings.Contains(systemText, "Percy") {
+			t.Errorf("System prompt doesn't contain 'Percy' in subsequent request: %s", systemText)
 		}
 
 		t.Logf("System prompt successfully sent in subsequent message (length: %d chars)", len(systemText))

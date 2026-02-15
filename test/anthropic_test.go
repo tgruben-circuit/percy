@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/claudetool"
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/server"
+	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/server"
 )
 
 func TestWithAnthropicAPI(t *testing.T) {

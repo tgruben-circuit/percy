@@ -255,13 +255,13 @@ func DefaultDirs() []string {
 	}
 
 	// Search these directories for skills:
-	// 1. ~/.config/shelley/ (XDG convention for Shelley)
+	// 1. ~/.config/percy/ (XDG convention for Percy)
 	// 2. ~/.config/agents/skills (shared agents skills directory)
-	// 3. ~/.shelley/ (legacy location)
+	// 3. ~/.percy/ (legacy location)
 	candidateDirs := []string{
-		filepath.Join(home, ".config", "shelley"),
+		filepath.Join(home, ".config", "percy"),
 		filepath.Join(home, ".config", "agents", "skills"),
-		filepath.Join(home, ".shelley"),
+		filepath.Join(home, ".percy"),
 	}
 
 	for _, dir := range candidateDirs {

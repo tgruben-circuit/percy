@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // TestWorkingDirectoryConfiguration tests that the working directory (cwd) setting
@@ -586,10 +586,10 @@ func TestConversationCwdReturnedInList(t *testing.T) {
 // TestSystemPromptUsesCwdFromConversation verifies that when a conversation
 // is created with a specific cwd, the system prompt is generated using that
 // directory (not the server's working directory). This tests the fix for
-// https://github.com/boldsoftware/shelley/issues/30
+// https://github.com/tgruben-circuit/percy/issues/30
 func TestSystemPromptUsesCwdFromConversation(t *testing.T) {
 	// Create a temp directory with an AGENTS.md file
-	tmpDir, err := os.MkdirTemp("", "shelley_cwd_test")
+	tmpDir, err := os.MkdirTemp("", "percy_cwd_test")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}

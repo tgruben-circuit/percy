@@ -1,9 +1,9 @@
-Shelley is an agentic loop with tool use. See
+Percy is an agentic loop with tool use. See
 https://sketch.dev/blog/agent-loop for an example of the idea.
 
-When Shelley is started with "go run ./cmd/shelley" it starts a web server and
+When Percy is started with "go run ./cmd/percy" it starts a web server and
 opens a sqlite database, and users interact with the ui built in ui/. (The
-server itself is implemented in server/; cmd/shelley is a very thing shim.)
+server itself is implemented in server/; cmd/percy is a very thing shim.)
 
 ## Components
 
@@ -75,6 +75,6 @@ Various tools for the LLM.
 
 ## Other
 
-Shelley talks to the LLMs using the llm/ library.
+Percy talks to the LLMs using the llm/ library.
 
 Logging happens with slog and the tint library.

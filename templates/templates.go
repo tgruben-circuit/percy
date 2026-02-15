@@ -1,4 +1,4 @@
-// Package templates provides embedded project templates for shelley.
+// Package templates provides embedded project templates for percy.
 package templates
 
 import (

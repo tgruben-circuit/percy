@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"shelley.exe.dev/claudetool"
-	"shelley.exe.dev/gitstate"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/gitstate"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // MessageRecordFunc is called to record new messages to persistent storage.

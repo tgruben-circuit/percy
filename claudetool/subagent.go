@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // SubagentRunner is the interface for running a subagent conversation.

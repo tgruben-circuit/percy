@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/db/generated"
+	"github.com/tgruben-circuit/percy/db/generated"
 )
 
 func TestConversationService_Create(t *testing.T) {

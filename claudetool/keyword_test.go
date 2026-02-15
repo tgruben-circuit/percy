@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // Mock LLM provider for testing

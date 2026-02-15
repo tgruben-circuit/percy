@@ -1,6 +1,6 @@
 # Loop Package
 
-The `loop` package provides the core agentic conversation loop for Shelley,
+The `loop` package provides the core agentic conversation loop for Percy,
 handling LLM interactions, tool execution, and message recording.
 
 ## Features

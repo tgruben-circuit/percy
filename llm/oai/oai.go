@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/sashabaranov/go-openai"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 const (

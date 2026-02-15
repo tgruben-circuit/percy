@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // ResponsesService provides chat completions using the OpenAI Responses API.

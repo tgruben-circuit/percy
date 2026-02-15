@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/slug"
+	"github.com/tgruben-circuit/percy/slug"
 )
 
 func TestSanitizeSlug(t *testing.T) {
@@ -44,7 +44,7 @@ func TestSanitizeSlug(t *testing.T) {
 func TestCLICommands(t *testing.T) {
 	// Build the binary once for this test and its subtests
 	tempDir := t.TempDir()
-	binary := filepath.Join(tempDir, "shelley")
+	binary := filepath.Join(tempDir, "percy")
 	cmd := exec.Command("go", "build", "-o", binary, ".")
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
@@ -153,7 +153,7 @@ func TestSystemdListenerIntegration(t *testing.T) {
 	// we test by spawning a subprocess.
 
 	tempDir := t.TempDir()
-	binary := filepath.Join(tempDir, "shelley")
+	binary := filepath.Join(tempDir, "percy")
 	cmd := exec.Command("go", "build", "-o", binary, ".")
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
@@ -178,7 +178,7 @@ func TestSystemdListenerIntegration(t *testing.T) {
 	// Create a temp database for the test
 	dbPath := filepath.Join(tempDir, "test.db")
 
-	// Spawn shelley with the file descriptor as fd 3
+	// Spawn percy with the file descriptor as fd 3
 	// Note: We don't set LISTEN_PID here because we don't know the child PID yet.
 	// The systemdListener function handles missing LISTEN_PID gracefully.
 	cmd = exec.Command(binary, "-db", dbPath, "serve", "-systemd-activation")
@@ -200,7 +200,7 @@ func TestSystemdListenerIntegration(t *testing.T) {
 	// Start the process
 	if err := cmd.Start(); err != nil {
 		file.Close()
-		t.Fatalf("Failed to start shelley: %v", err)
+		t.Fatalf("Failed to start percy: %v", err)
 	}
 	file.Close() // Close our copy after child inherits it
 

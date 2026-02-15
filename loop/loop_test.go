@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/claudetool"
-	"shelley.exe.dev/gitstate"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/gitstate"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 func TestNewLoop(t *testing.T) {

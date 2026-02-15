@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/loop"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/loop"
 )
 
 func ExampleLoop() {

@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/llm/ant"
-	"shelley.exe.dev/llm/gem"
-	"shelley.exe.dev/llm/oai"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/llm/ant"
+	"github.com/tgruben-circuit/percy/llm/gem"
+	"github.com/tgruben-circuit/percy/llm/oai"
 )
 
 // ModelAPI is the API representation of a model

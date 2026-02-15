@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"shelley.exe.dev/llm"
-	memdb "shelley.exe.dev/memory"
+	"github.com/tgruben-circuit/percy/llm"
+	memdb "github.com/tgruben-circuit/percy/memory"
 )
 
 const (

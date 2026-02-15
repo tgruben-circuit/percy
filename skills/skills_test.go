@@ -196,12 +196,12 @@ func TestToPromptXML(t *testing.T) {
 		{
 			Name:        "pdf-processing",
 			Description: "Extract text & tables from PDF files.",
-			Path:        "/home/user/.shelley/skills/pdf-processing/SKILL.md",
+			Path:        "/home/user/.percy/skills/pdf-processing/SKILL.md",
 		},
 		{
 			Name:        "data-analysis",
 			Description: "Analyze datasets and generate reports.",
-			Path:        "/home/user/.shelley/skills/data-analysis/SKILL.md",
+			Path:        "/home/user/.percy/skills/data-analysis/SKILL.md",
 		},
 	}
 
@@ -215,7 +215,7 @@ func TestToPromptXML(t *testing.T) {
 		"</skill>",
 		"<name>pdf-processing</name>",
 		"<description>Extract text &amp; tables from PDF files.</description>",
-		"<location>/home/user/.shelley/skills/pdf-processing/SKILL.md</location>",
+		"<location>/home/user/.percy/skills/pdf-processing/SKILL.md</location>",
 		"<name>data-analysis</name>",
 	}
 
@@ -462,11 +462,11 @@ func TestDefaultDirsReturnsExistingCandidates(t *testing.T) {
 	tmpHome := t.TempDir()
 
 	// Create all three candidate directories
-	configShelley := filepath.Join(tmpHome, ".config", "shelley")
+	configPercy := filepath.Join(tmpHome, ".config", "percy")
 	configAgents := filepath.Join(tmpHome, ".config", "agents", "skills")
-	dotShelley := filepath.Join(tmpHome, ".shelley")
+	dotPercy := filepath.Join(tmpHome, ".percy")
 
-	for _, dir := range []string{configShelley, configAgents, dotShelley} {
+	for _, dir := range []string{configPercy, configAgents, dotPercy} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -485,9 +485,9 @@ func TestDefaultDirsReturnsExistingCandidates(t *testing.T) {
 
 	// Verify all three candidates are returned
 	want := map[string]bool{
-		configShelley: true,
+		configPercy: true,
 		configAgents:  true,
-		dotShelley:    true,
+		dotPercy:    true,
 	}
 	for _, d := range dirs {
 		if !want[d] {
@@ -521,7 +521,7 @@ func TestDefaultDirsSkipsMissingDirs(t *testing.T) {
 
 func TestSkillsFoundRegardlessOfWorkingDir(t *testing.T) {
 	// This is a regression test for:
-	// https://github.com/boldsoftware/shelley/issues/83
+	// https://github.com/tgruben-circuit/percy/issues/83
 	//
 	// Skills from ~/.config/agents/skills should be discovered
 	// regardless of the current working directory.

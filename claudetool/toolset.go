@@ -5,10 +5,10 @@ import (
 	"strings"
 	"sync"
 
-	"shelley.exe.dev/claudetool/browse"
-	"shelley.exe.dev/claudetool/lsp"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/skills"
+	"github.com/tgruben-circuit/percy/claudetool/browse"
+	"github.com/tgruben-circuit/percy/claudetool/lsp"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/skills"
 )
 
 // WorkingDir is a thread-safe mutable working directory.
@@ -62,7 +62,7 @@ type ToolSetConfig struct {
 	// ParentConversationID is the ID of the parent conversation (for subagent tool).
 	ParentConversationID string
 	// ConversationID is the ID of the conversation these tools belong to.
-	// This is exposed to bash commands via the SHELLEY_CONVERSATION_ID environment variable.
+	// This is exposed to bash commands via the PERCY_CONVERSATION_ID environment variable.
 	ConversationID string
 	// SubagentDepth is the nesting depth of this conversation.
 	// 0 = top-level conversation, 1 = subagent, 2 = sub-subagent, etc.

@@ -122,11 +122,11 @@ func TestIsNewerMinor(t *testing.T) {
 }
 
 func TestVersionCheckerSkipCheck(t *testing.T) {
-	t.Setenv("SHELLEY_SKIP_VERSION_CHECK", "true")
+	t.Setenv("PERCY_SKIP_VERSION_CHECK", "true")
 
 	vc := NewVersionChecker()
 	if !vc.skipCheck {
-		t.Error("Expected skipCheck to be true when SHELLEY_SKIP_VERSION_CHECK=true")
+		t.Error("Expected skipCheck to be true when PERCY_SKIP_VERSION_CHECK=true")
 	}
 
 	info, err := vc.Check(context.Background(), false)
@@ -206,9 +206,9 @@ func TestFetchChangelogPrefixMatching(t *testing.T) {
 	// This test verifies the prefix matching logic handles the length mismatch.
 	commits := []StaticCommitInfo{
 		{SHA: "a004332", Subject: "fix: latest commit"},
-		{SHA: "542901e", Subject: "shelley/ui: middle commit"},
-		{SHA: "e3ed88a", Subject: "shelley: another commit"},
-		{SHA: "60ee3ab", Subject: "shelley/ui: old commit"},
+		{SHA: "542901e", Subject: "percy/ui: middle commit"},
+		{SHA: "e3ed88a", Subject: "percy: another commit"},
+		{SHA: "60ee3ab", Subject: "percy/ui: old commit"},
 	}
 
 	currentSHA := extractSHAFromTag("v0.212.925024401")

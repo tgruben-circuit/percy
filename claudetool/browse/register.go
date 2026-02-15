@@ -3,7 +3,7 @@ package browse
 import (
 	"context"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // RegisterBrowserTools returns all browser tools ready to be added to an agent.

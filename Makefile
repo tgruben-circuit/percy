@@ -1,4 +1,4 @@
-# Shelley Makefile
+# Percy Makefile
 
 .PHONY: build build-linux-aarch64 build-linux-x86 test test-go test-e2e ui serve clean help templates lint
 
@@ -14,29 +14,29 @@ templates:
 
 # Build the UI and Go binary
 build: ui templates
-	@echo "Building Shelley..."
-	go build -o bin/shelley ./cmd/shelley
+	@echo "Building Percy..."
+	go build -o bin/percy ./cmd/percy
 
 # Build for Linux (auto-detect architecture)
 build-linux: ui templates
-	@echo "Building Shelley for Linux..."
+	@echo "Building Percy for Linux..."
 	@ARCH=$$(uname -m); \
 	case $$ARCH in \
 		x86_64) GOARCH=amd64 ;; \
 		aarch64|arm64) GOARCH=arm64 ;; \
 		*) echo "Unsupported architecture: $$ARCH" && exit 1 ;; \
 	esac; \
-	GOOS=linux GOARCH=$$GOARCH go build -o bin/shelley-linux ./cmd/shelley
+	GOOS=linux GOARCH=$$GOARCH go build -o bin/percy-linux ./cmd/percy
 
 # Build for Linux ARM64
 build-linux-aarch64: ui templates
-	@echo "Building Shelley for Linux ARM64..."
-	GOOS=linux GOARCH=arm64 go build -o bin/shelley-linux-aarch64 ./cmd/shelley
+	@echo "Building Percy for Linux ARM64..."
+	GOOS=linux GOARCH=arm64 go build -o bin/percy-linux-aarch64 ./cmd/percy
 
 # Build for Linux x86_64
 build-linux-x86: ui templates
-	@echo "Building Shelley for Linux x86_64..."
-	GOOS=linux GOARCH=amd64 go build -o bin/shelley-linux-x86 ./cmd/shelley
+	@echo "Building Percy for Linux x86_64..."
+	GOOS=linux GOARCH=amd64 go build -o bin/percy-linux-x86 ./cmd/percy
 
 # Build UI
 ui:
@@ -65,15 +65,15 @@ test-e2e-ui: ui
 # Run all tests
 test: test-go test-e2e
 
-# Serve Shelley with predictable model for testing
+# Serve Percy with predictable model for testing
 serve-test: ui
-	@echo "Starting Shelley with predictable model..."
-	go run ./cmd/shelley --model predictable --db test.db serve
+	@echo "Starting Percy with predictable model..."
+	go run ./cmd/percy --model predictable --db test.db serve
 
-# Serve Shelley normally
+# Serve Percy normally
 serve: ui
-	@echo "Starting Shelley..."
-	go run ./cmd/shelley serve
+	@echo "Starting Percy..."
+	go run ./cmd/percy serve
 
 # Run linters
 lint:
@@ -96,7 +96,7 @@ clean:
 
 # Show help
 help:
-	@echo "Shelley Build Commands:"
+	@echo "Percy Build Commands:"
 	@echo ""
 	@echo "  build         Build UI, templates, and Go binary"
 	@echo "  build-linux-aarch64  Build for Linux ARM64"
@@ -108,9 +108,8 @@ help:
 	@echo "  test-e2e      Run E2E tests (headless)"
 	@echo "  test-e2e-headed  Run E2E tests (visible browser)"
 	@echo "  test-e2e-ui   Open E2E test UI"
-	@echo "  serve         Start Shelley server"
-	@echo "  serve-test    Start Shelley with predictable model"
+	@echo "  serve         Start Percy server"
+	@echo "  serve-test    Start Percy with predictable model"
 	@echo "  lint          Run Go linters (golangci-lint)"
 	@echo "  clean         Clean build artifacts"
 	@echo "  help          Show this help"
-

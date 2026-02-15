@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/claudetool"
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/loop"
+	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/loop"
 )
 
 // TestChangeDirAffectsBash tests that change_dir updates the working directory

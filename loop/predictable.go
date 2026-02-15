@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // PredictableService is an LLM service that returns predictable responses for testing.
@@ -116,7 +116,7 @@ func (s *PredictableService) Do(ctx context.Context, req *llm.Request) (*llm.Res
 		return s.makeResponse("Well, hi there!", inputTokens), nil
 
 	case "Hello":
-		return s.makeResponse("Hello! I'm Shelley, your AI assistant. How can I help you today?", inputTokens), nil
+		return s.makeResponse("Hello! I'm Percy, your AI assistant. How can I help you today?", inputTokens), nil
 
 	case "Create an example":
 		return s.makeThinkingResponse("I'll create a simple example for you.", inputTokens), nil

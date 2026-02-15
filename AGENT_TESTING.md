@@ -1,6 +1,6 @@
-# Shelley Agent Testing Guide
+# Percy Agent Testing Guide
 
-This document provides instructions for automated testing of the Shelley coding agent product.
+This document provides instructions for automated testing of the Percy coding agent product.
 
 ## Prerequisites
 
@@ -11,17 +11,17 @@ This document provides instructions for automated testing of the Shelley coding 
 
 ## Setup Instructions
 
-### 1. Build Shelley
+### 1. Build Percy
 
 ```bash
-cd /path/to/shelley
+cd /path/to/percy
 make build
 ```
 
 This will:
 - Build the UI (`pnpm install && pnpm run build`)
 - Create template tarballs
-- Build the Go binary to `bin/shelley`
+- Build the Go binary to `bin/percy`
 
 ### 2. Install Playwright for E2E Tests
 
@@ -31,16 +31,16 @@ pnpm install
 pnpm exec playwright install chromium
 ```
 
-### 3. Start Shelley Server
+### 3. Start Percy Server
 
 For testing with Claude:
 ```bash
-./bin/shelley --model claude-sonnet-4.5 --db test.db serve --port 9001
+./bin/percy --model claude-sonnet-4.5 --db test.db serve --port 9001
 ```
 
 For testing with predictable model (no API key needed):
 ```bash
-./bin/shelley --model predictable --db test.db serve --port 9001
+./bin/percy --model predictable --db test.db serve --port 9001
 ```
 
 ### 4. Start Headless Browser (if using headless tool)
@@ -57,7 +57,7 @@ Test these commands manually:
 
 ```bash
 # List available models
-./bin/shelley models
+./bin/percy models
 ```
 
 ### E2E Tests (Automated)
@@ -79,7 +79,7 @@ pnpm run test:e2e -- --grep "cancellation"
 ### Headless Browser Testing
 
 ```bash
-# Navigate to Shelley
+# Navigate to Percy
 headless navigate http://localhost:9001
 
 # Check page title
@@ -114,7 +114,7 @@ headless eval 'document.querySelector("[role=\"alert\"]")?.innerText || "no erro
 
 ### Things That Work Well (Regression Tests)
 
-- [ ] **Page loads correctly** - Title is "Shelley", message input visible
+- [ ] **Page loads correctly** - Title is "Percy", message input visible
 - [ ] **Send button state** - Disabled when empty, enabled when text entered
 - [ ] **Claude integration** - Messages send and receive responses (~2-3 seconds)
 - [ ] **Prompt caching** - Check server logs for `cache_read_input_tokens`
@@ -168,7 +168,7 @@ When testing, capture these screenshots for the report:
 
 ## Report Template
 
-Create `test-report/SHELLEY_TEST_REPORT.md` with:
+Create `test-report/PERCY_TEST_REPORT.md` with:
 
 1. **Executive Summary** - Overall pass/fail, key issues
 2. **Test Environment** - Platform, models tested, browser

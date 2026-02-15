@@ -45,7 +45,7 @@ func (d *DB) Close() error {
 	return d.db.Close()
 }
 
-func MemoryDBPath(shelleyDBPath string) string {
-	dir := filepath.Dir(shelleyDBPath)
+func MemoryDBPath(percyDBPath string) string {
+	dir := filepath.Dir(percyDBPath)
 	return filepath.Join(dir, "memory.db")
 }

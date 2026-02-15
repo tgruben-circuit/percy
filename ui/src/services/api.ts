@@ -310,7 +310,7 @@ class ApiService {
     const url = restart ? "/upgrade?restart=true" : "/upgrade";
     const response = await fetch(url, {
       method: "POST",
-      headers: { "X-Shelley-Request": "1" },
+      headers: { "X-Percy-Request": "1" },
     });
     if (!response.ok) {
       const text = await response.text();
@@ -342,7 +342,7 @@ class ApiService {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Shelley-Request": "1",
+        "X-Percy-Request": "1",
       },
       body: JSON.stringify({ key, value }),
     });

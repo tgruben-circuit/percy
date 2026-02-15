@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/db/generated"
+	"github.com/tgruben-circuit/percy/db/generated"
 )
 
 // setupTestDB creates a test database with schema migrated

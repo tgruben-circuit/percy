@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 func TestLoopWithClaudeTools(t *testing.T) {

@@ -1,6 +1,6 @@
 package lsp
 
-import "shelley.exe.dev/llm"
+import "github.com/tgruben-circuit/percy/llm"
 
 // RegisterLSPTools creates the LSP code intelligence tools and returns them with a cleanup function.
 // The cleanup function shuts down all running LSP servers.

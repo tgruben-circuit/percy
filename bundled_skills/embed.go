@@ -1,5 +1,5 @@
 // Package bundled_skills provides embedded skill definitions that ship with
-// Shelley. Each subdirectory contains a SKILL.md file following the Agent
+// Percy. Each subdirectory contains a SKILL.md file following the Agent
 // Skills specification (https://agentskills.io).
 package bundled_skills
 
@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"shelley.exe.dev/skills"
+	"github.com/tgruben-circuit/percy/skills"
 )
 
 //go:embed *
@@ -87,7 +87,7 @@ func loadEmbeddedSkills() ([]skills.Skill, error) {
 
 func ensureTmpDir() (string, error) {
 	tmpDirOnce.Do(func() {
-		tmpDir, tmpDirErr = os.MkdirTemp("", "shelley-bundled-skills-*")
+		tmpDir, tmpDirErr = os.MkdirTemp("", "percy-bundled-skills-*")
 	})
 	return tmpDir, tmpDirErr
 }

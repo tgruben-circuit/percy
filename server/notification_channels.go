@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/server/notifications"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/server/notifications"
 )
 
 type NotificationChannelAPI struct {
@@ -370,7 +370,7 @@ func (s *Server) ReloadNotificationChannels() {
 }
 
 // SeedNotificationChannelsFromConfig seeds the DB with notification channels
-// from shelley.json config if the DB table is empty. One-time migration for
+// from percy.json config if the DB table is empty. One-time migration for
 // backwards compatibility.
 func (s *Server) SeedNotificationChannelsFromConfig(configs []map[string]any) {
 	existing, err := s.db.GetNotificationChannels(context.Background())

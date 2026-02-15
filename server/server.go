@@ -19,14 +19,14 @@ import (
 
 	"tailscale.com/util/singleflight"
 
-	"shelley.exe.dev/claudetool"
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/memory"
-	"shelley.exe.dev/models"
-	"shelley.exe.dev/server/notifications"
-	"shelley.exe.dev/ui"
+	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/memory"
+	"github.com/tgruben-circuit/percy/models"
+	"github.com/tgruben-circuit/percy/server/notifications"
+	"github.com/tgruben-circuit/percy/ui"
 )
 
 // APIMessage is the message format sent to clients

@@ -1,6 +1,6 @@
-# Go Shelley Template
+# Go Percy Template
 
-This is a starter template for building Go web applications on exe.dev. It demonstrates end-to-end usage including HTTP handlers, authentication, database integration, and deployment.
+This is a starter template for building Go web applications. It demonstrates end-to-end usage including HTTP handlers, authentication, database integration, and deployment.
 
 Use this as a foundation to build your own service.
 

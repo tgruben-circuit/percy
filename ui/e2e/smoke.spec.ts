@@ -1,13 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Shelley Smoke Tests', () => {
+test.describe('Percy Smoke Tests', () => {
   test('page loads successfully', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
     
     // Just verify the page loads with a title
     const title = await page.title();
-    expect(title).toBe('Shelley Agent');
+    expect(title).toBe('Percy');
   });
 
   test('can find message input with proper aria label', async ({ page }) => {

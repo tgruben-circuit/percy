@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // LLMServiceProvider defines the interface for getting LLM services

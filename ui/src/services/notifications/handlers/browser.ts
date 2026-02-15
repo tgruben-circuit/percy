@@ -7,15 +7,15 @@ export function browserNotificationHandler(event: NotificationEvent): void {
 
   switch (event.type) {
     case "agent_done":
-      new Notification("Shelley", {
+      new Notification("Percy", {
         body: "Agent finished",
-        tag: "shelley-agent-done",
+        tag: "percy-agent-done",
       });
       break;
     case "agent_error":
-      new Notification("Shelley", {
+      new Notification("Percy", {
         body: "Agent error",
-        tag: "shelley-agent-error",
+        tag: "percy-agent-error",
       });
       break;
   }

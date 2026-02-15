@@ -96,7 +96,7 @@ function VersionModal({ isOpen, onClose, versionInfo, isLoading }: VersionModalP
   };
 
   const getCommitUrl = (sha: string) => {
-    return `https://github.com/boldsoftware/shelley/commit/${sha}`;
+    return `https://github.com/tgruben-circuit/percy/commit/${sha}`;
   };
 
   return (
@@ -156,7 +156,7 @@ function VersionModal({ isOpen, onClose, versionInfo, isLoading }: VersionModalP
                 <div className="version-changelog">
                   <h3>
                     <a
-                      href={`https://github.com/boldsoftware/shelley/compare/${versionInfo.current_tag}...${versionInfo.latest_tag}`}
+                      href={`https://github.com/tgruben-circuit/percy/compare/${versionInfo.current_tag}...${versionInfo.latest_tag}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="changelog-link"
@@ -218,7 +218,7 @@ function VersionModal({ isOpen, onClose, versionInfo, isLoading }: VersionModalP
                         : "Upgrading & Killing..."
                       : versionInfo.running_under_systemd
                         ? "Upgrade & Restart"
-                        : "Upgrade & Kill Shelley Server"}
+                        : "Upgrade & Kill Percy Server"}
                   </button>
                 </div>
               )}

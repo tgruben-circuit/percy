@@ -108,7 +108,7 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
     if (isOpen) {
       loadModels();
       // Get built-in models from init data (those with non-custom source)
-      const initData = window.__SHELLEY_INIT__;
+      const initData = window.__PERCY_INIT__;
       if (initData?.models) {
         const builtIn = initData.models.filter(
           (m: BuiltInModel) => m.source && m.source !== "custom",

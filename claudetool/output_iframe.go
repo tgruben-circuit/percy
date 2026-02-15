@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // OutputIframeTool displays sandboxed HTML content to the user.

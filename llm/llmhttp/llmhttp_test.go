@@ -68,13 +68,13 @@ func TestTransportAddsHeaders(t *testing.T) {
 	resp.Body.Close()
 
 	// Verify User-Agent header was added
-	if !strings.HasPrefix(receivedHeaders.Get("User-Agent"), "Shelley") {
-		t.Errorf("User-Agent = %q, want prefix 'Shelley'", receivedHeaders.Get("User-Agent"))
+	if !strings.HasPrefix(receivedHeaders.Get("User-Agent"), "Percy") {
+		t.Errorf("User-Agent = %q, want prefix 'Percy'", receivedHeaders.Get("User-Agent"))
 	}
 
-	// Verify Shelley-Conversation-Id header was added
-	if got := receivedHeaders.Get("Shelley-Conversation-Id"); got != "test-conv-id" {
-		t.Errorf("Shelley-Conversation-Id = %q, want %q", got, "test-conv-id")
+	// Verify Percy-Conversation-Id header was added
+	if got := receivedHeaders.Get("Percy-Conversation-Id"); got != "test-conv-id" {
+		t.Errorf("Percy-Conversation-Id = %q, want %q", got, "test-conv-id")
 	}
 
 	// Verify x-session-affinity is NOT added for non-fireworks providers
@@ -113,9 +113,9 @@ func TestTransportAddsSessionAffinityForFireworks(t *testing.T) {
 		t.Errorf("x-session-affinity = %q, want %q", got, "test-conv-id")
 	}
 
-	// Verify Shelley-Conversation-Id header was also added
-	if got := receivedHeaders.Get("Shelley-Conversation-Id"); got != "test-conv-id" {
-		t.Errorf("Shelley-Conversation-Id = %q, want %q", got, "test-conv-id")
+	// Verify Percy-Conversation-Id header was also added
+	if got := receivedHeaders.Get("Percy-Conversation-Id"); got != "test-conv-id" {
+		t.Errorf("Percy-Conversation-Id = %q, want %q", got, "test-conv-id")
 	}
 }
 

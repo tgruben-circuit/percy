@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/pkg/diff"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 	"sketch.dev/claudetool/editbuf"
 	"sketch.dev/claudetool/patchkit"
 )

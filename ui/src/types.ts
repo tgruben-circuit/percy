@@ -1,4 +1,4 @@
-// Types for Shelley UI
+// Types for Percy UI
 import {
   Conversation as GeneratedConversation,
   ConversationWithStateForTS,
@@ -99,7 +99,7 @@ export interface InitData {
 // Extend Window interface to include our init data
 declare global {
   interface Window {
-    __SHELLEY_INIT__?: InitData;
+    __PERCY_INIT__?: InitData;
   }
 }
 

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"shelley.exe.dev/gitstate"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/gitstate"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // tildeReplace replaces the home directory prefix with ~ for display.

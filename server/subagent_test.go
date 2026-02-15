@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 func TestBuildConversationSummary(t *testing.T) {

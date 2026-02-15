@@ -54,7 +54,7 @@ interface MessageInputProps {
   persistKey?: string;
 }
 
-const PERSIST_KEY_PREFIX = "shelley_draft_";
+const PERSIST_KEY_PREFIX = "percy_draft_";
 
 function MessageInput({
   onSend,

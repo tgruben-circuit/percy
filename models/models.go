@@ -7,14 +7,14 @@ import (
 	"net/http"
 	"time"
 
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/llm/ant"
-	"shelley.exe.dev/llm/gem"
-	"shelley.exe.dev/llm/llmhttp"
-	"shelley.exe.dev/llm/oai"
-	"shelley.exe.dev/loop"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/llm/ant"
+	"github.com/tgruben-circuit/percy/llm/gem"
+	"github.com/tgruben-circuit/percy/llm/llmhttp"
+	"github.com/tgruben-circuit/percy/llm/oai"
+	"github.com/tgruben-circuit/percy/loop"
 )
 
 // Provider represents an LLM provider
@@ -37,7 +37,7 @@ const (
 	SourceCustom  ModelSource = "custom" // User-configured custom model
 )
 
-// Model represents a configured LLM model in Shelley
+// Model represents a configured LLM model in Percy
 type Model struct {
 	// ID is the user-facing identifier for this model
 	ID string
@@ -153,7 +153,7 @@ func (c *Config) getFireworksURL() string {
 	return "" // use default from oai package
 }
 
-// All returns all available models in Shelley
+// All returns all available models in Percy
 func All() []Model {
 	return []Model{
 		{

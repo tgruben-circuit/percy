@@ -11,8 +11,8 @@ import (
 	"text/template"
 	"time"
 
-	bundledskills "shelley.exe.dev/bundled_skills"
-	"shelley.exe.dev/skills"
+	bundledskills "github.com/tgruben-circuit/percy/bundled_skills"
+	"github.com/tgruben-circuit/percy/skills"
 )
 
 //go:embed system_prompt.txt
@@ -29,11 +29,11 @@ type SystemPromptData struct {
 	IsExeDev         bool
 	IsSudoAvailable  bool
 	Hostname         string // For exe.dev, the public hostname (e.g., "vmname.exe.xyz")
-	ShelleyDBPath    string // Path to the shelley database
+	PercyDBPath      string // Path to the percy database
 	SkillsXML        string // XML block for available skills
 }
 
-// DBPath is the path to the shelley database, set at startup
+// DBPath is the path to the percy database, set at startup
 var DBPath string
 
 type GitInfo struct {
@@ -111,17 +111,17 @@ func collectSystemData(workingDir string) (*SystemPromptData, error) {
 		}
 	}
 
-	// Set shelley database path if it was configured
+	// Set percy database path if it was configured
 	if DBPath != "" {
 		// Convert to absolute path if relative
 		if !filepath.IsAbs(DBPath) {
 			if absPath, err := filepath.Abs(DBPath); err == nil {
-				data.ShelleyDBPath = absPath
+				data.PercyDBPath = absPath
 			} else {
-				data.ShelleyDBPath = DBPath
+				data.PercyDBPath = DBPath
 			}
 		} else {
-			data.ShelleyDBPath = DBPath
+			data.PercyDBPath = DBPath
 		}
 	}
 
@@ -162,22 +162,22 @@ func collectCodebaseInfo(wd string, gitInfo *GitInfo) (*CodebaseInfo, error) {
 	// Track seen files to avoid duplicates on case-insensitive file systems
 	seenFiles := make(map[string]bool)
 
-	// Check for user-level agent instructions in ~/.config/shelley/AGENTS.md and ~/.shelley/AGENTS.md
+	// Check for user-level agent instructions in ~/.config/percy/AGENTS.md and ~/.percy/AGENTS.md
 	if home, err := os.UserHomeDir(); err == nil {
-		// Prefer ~/.config/shelley/AGENTS.md (XDG convention)
-		configAgentsFile := filepath.Join(home, ".config", "shelley", "AGENTS.md")
+		// Prefer ~/.config/percy/AGENTS.md (XDG convention)
+		configAgentsFile := filepath.Join(home, ".config", "percy", "AGENTS.md")
 		if content, err := os.ReadFile(configAgentsFile); err == nil && len(content) > 0 {
 			info.InjectFiles = append(info.InjectFiles, configAgentsFile)
 			info.InjectFileContents[configAgentsFile] = string(content)
 			seenFiles[strings.ToLower(configAgentsFile)] = true
 		}
-		// Also check legacy ~/.shelley/AGENTS.md location
-		shelleyAgentsFile := filepath.Join(home, ".shelley", "AGENTS.md")
-		if content, err := os.ReadFile(shelleyAgentsFile); err == nil && len(content) > 0 {
-			lowerPath := strings.ToLower(shelleyAgentsFile)
+		// Also check legacy ~/.percy/AGENTS.md location
+		percyAgentsFile := filepath.Join(home, ".percy", "AGENTS.md")
+		if content, err := os.ReadFile(percyAgentsFile); err == nil && len(content) > 0 {
+			lowerPath := strings.ToLower(percyAgentsFile)
 			if !seenFiles[lowerPath] {
-				info.InjectFiles = append(info.InjectFiles, shelleyAgentsFile)
-				info.InjectFileContents[shelleyAgentsFile] = string(content)
+				info.InjectFiles = append(info.InjectFiles, percyAgentsFile)
+				info.InjectFileContents[percyAgentsFile] = string(content)
 				seenFiles[lowerPath] = true
 			}
 		}

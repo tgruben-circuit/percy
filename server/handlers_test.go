@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"shelley.exe.dev/db/generated"
+	"github.com/tgruben-circuit/percy/db/generated"
 )
 
 func TestHandleVersion(t *testing.T) {

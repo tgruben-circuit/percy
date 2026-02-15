@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/llm/gem/gemini"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/llm/gem/gemini"
 )
 
 const (

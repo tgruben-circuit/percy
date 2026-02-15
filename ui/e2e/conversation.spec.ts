@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Shelley Conversation Tests', () => {
+test.describe('Percy Conversation Tests', () => {
   test('can send Hello and get greeting response', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
@@ -18,10 +18,10 @@ test.describe('Shelley Conversation Tests', () => {
     await sendButton.click();
     
     // Wait for the response from the predictable model
-    // The predictable model responds to "Hello" with "Hello! I'm Shelley, your AI assistant. How can I help you today?"
+    // The predictable model responds to "Hello" with "Hello! I'm Percy, your AI assistant. How can I help you today?"
     await page.waitForFunction(
       () => {
-        const text = "Hello! I'm Shelley, your AI assistant. How can I help you today?";
+        const text = "Hello! I'm Percy, your AI assistant. How can I help you today?";
         return document.body.textContent?.includes(text) ?? false;
       },
       undefined,
@@ -30,7 +30,7 @@ test.describe('Shelley Conversation Tests', () => {
     
     // Verify both the user message and assistant response are visible
     await expect(page.locator('text=Hello').first()).toBeVisible();
-    await expect(page.locator('text=Hello! I\'m Shelley, your AI assistant. How can I help you today?').first()).toBeVisible();
+    await expect(page.locator('text=Hello! I\'m Percy, your AI assistant. How can I help you today?').first()).toBeVisible();
   });
   
   test('can use echo command', async ({ page }) => {
@@ -197,7 +197,7 @@ test.describe('Shelley Conversation Tests', () => {
     // Wait for first response
     await page.waitForFunction(
       () => {
-        const text = "Hello! I'm Shelley, your AI assistant. How can I help you today?";
+        const text = "Hello! I'm Percy, your AI assistant. How can I help you today?";
         return document.body.textContent?.includes(text) ?? false;
       },
       undefined,
@@ -216,7 +216,7 @@ test.describe('Shelley Conversation Tests', () => {
     );
     
     // Verify both responses are still visible (conversation persists)
-    await expect(page.locator('text=Hello! I\'m Shelley, your AI assistant. How can I help you today?').first()).toBeVisible();
+    await expect(page.locator('text=Hello! I\'m Percy, your AI assistant. How can I help you today?').first()).toBeVisible();
     await expect(page.locator('text=second message').first()).toBeVisible();
   });
   
@@ -234,7 +234,7 @@ test.describe('Shelley Conversation Tests', () => {
     // Verify response
     await page.waitForFunction(
       () => {
-        const text = "Hello! I'm Shelley, your AI assistant. How can I help you today?";
+        const text = "Hello! I'm Percy, your AI assistant. How can I help you today?";
         return document.body.textContent?.includes(text) ?? false;
       },
       undefined,
@@ -242,7 +242,7 @@ test.describe('Shelley Conversation Tests', () => {
     );
     
     // Verify the Hello message and response are visible
-    await expect(page.locator('text=Hello! I\'m Shelley, your AI assistant. How can I help you today?').first()).toBeVisible();
+    await expect(page.locator('text=Hello! I\'m Percy, your AI assistant. How can I help you today?').first()).toBeVisible();
   });
   
   test('handles think tool correctly', async ({ page }) => {

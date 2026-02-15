@@ -17,8 +17,8 @@ import (
 	"syscall"
 	"time"
 
-	"shelley.exe.dev/claudetool/bashkit"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/claudetool/bashkit"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // PermissionCallback is a function type for checking if a command is allowed to run
@@ -37,7 +37,7 @@ type BashTool struct {
 	// LLMProvider provides access to LLM services for tool validation
 	LLMProvider LLMServiceProvider
 	// ConversationID is the ID of the conversation this tool belongs to.
-	// It is exposed to invoked commands via SHELLEY_CONVERSATION_ID.
+	// It is exposed to invoked commands via PERCY_CONVERSATION_ID.
 	ConversationID string
 }
 
@@ -88,7 +88,7 @@ func (b *BashTool) getWorkingDir() string {
 
 // isNoTrailerSet checks if user has disabled co-author trailer via git config.
 func (b *BashTool) isNoTrailerSet() bool {
-	out, err := exec.Command("git", "config", "--get", "shelley.no-trailer").Output()
+	out, err := exec.Command("git", "config", "--get", "percy.no-trailer").Output()
 	if err != nil {
 		return false
 	}
@@ -189,7 +189,7 @@ func (b *BashTool) Run(ctx context.Context, m json.RawMessage) llm.ToolOut {
 
 	// Add co-author trailer to git commits unless user has disabled it
 	if !b.isNoTrailerSet() {
-		req.Command = bashkit.AddCoauthorTrailer(req.Command, "Co-authored-by: Shelley <shelley@exe.dev>")
+		req.Command = bashkit.AddCoauthorTrailer(req.Command, "Co-authored-by: Percy <percy@tgruben-circuit.dev>")
 	}
 
 	timeout := req.timeout(b.Timeouts)
@@ -228,14 +228,14 @@ func (b *BashTool) makeBashCommand(ctx context.Context, command string, out io.W
 		return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) // kill entire process group
 	}
 	cmd.WaitDelay = 15 * time.Second // prevent indefinite hangs when child processes keep pipes open
-	// Remove SHELLEY_CONVERSATION_ID so we control it explicitly below.
+	// Remove PERCY_CONVERSATION_ID so we control it explicitly below.
 	env := slices.DeleteFunc(os.Environ(), func(s string) bool {
-		return strings.HasPrefix(s, "SHELLEY_CONVERSATION_ID=")
+		return strings.HasPrefix(s, "PERCY_CONVERSATION_ID=")
 	})
 	env = append(env, "SKETCH=1")          // signal that this has been run by Sketch, sometimes useful for scripts
 	env = append(env, "EDITOR=/bin/false") // interactive editors won't work
 	if b.ConversationID != "" {
-		env = append(env, "SHELLEY_CONVERSATION_ID="+b.ConversationID)
+		env = append(env, "PERCY_CONVERSATION_ID="+b.ConversationID)
 	}
 	cmd.Env = env
 	return cmd
@@ -286,7 +286,7 @@ func formatForegroundBashOutput(out string) (string, error) {
 	}
 
 	// Save full output to a temp file
-	tmpDir, err := os.MkdirTemp("", "shelley-output-")
+	tmpDir, err := os.MkdirTemp("", "percy-output-")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp dir for large output: %w", err)
 	}

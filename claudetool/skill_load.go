@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/skills"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/skills"
 )
 
 // SkillLoadTool loads the full content of a skill's SKILL.md file by name.

@@ -9,19 +9,19 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/slug"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/slug"
 )
 
-const distillSystemPrompt = `You are a conversation distillation engine for Shelley, an AI coding assistant.
+const distillSystemPrompt = `You are a conversation distillation engine for Percy, an AI coding assistant.
 
-You will receive a full conversation transcript between a user and Shelley. The transcript includes user messages, agent responses, tool calls (bash, patch, browser, keyword_search, etc.), and tool results.
+You will receive a full conversation transcript between a user and Percy. The transcript includes user messages, agent responses, tool calls (bash, patch, browser, keyword_search, etc.), and tool results.
 
-Your job is to produce an OPERATIONAL DISTILLATION — not a narrative summary. The output will become the opening user message in a brand-new continuation conversation. It must give the new Shelley instance everything it needs to pick up the work seamlessly.
+Your job is to produce an OPERATIONAL DISTILLATION — not a narrative summary. The output will become the opening user message in a brand-new continuation conversation. It must give the new Percy instance everything it needs to pick up the work seamlessly.
 
-Write the distillation AS IF you are the user briefing a fresh Shelley instance. Use second person: "You were working on...", "You created...", "The approach is...".
+Write the distillation AS IF you are the user briefing a fresh Percy instance. Use second person: "You were working on...", "You created...", "The approach is...".
 
 ## Output Format
 

@@ -19,18 +19,18 @@ import (
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 	"github.com/google/uuid"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/llm/imageutil"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/llm/imageutil"
 )
 
 // ScreenshotDir is the directory where screenshots are stored
-const ScreenshotDir = "/tmp/shelley-screenshots"
+const ScreenshotDir = "/tmp/percy-screenshots"
 
 // DownloadDir is the directory where downloads are stored
-const DownloadDir = "/tmp/shelley-downloads"
+const DownloadDir = "/tmp/percy-downloads"
 
 // ConsoleLogsDir is the directory where large console logs are stored
-const ConsoleLogsDir = "/tmp/shelley-console-logs"
+const ConsoleLogsDir = "/tmp/percy-console-logs"
 
 // ConsoleLogSizeThreshold is the size in bytes above which console logs are written to a file
 const ConsoleLogSizeThreshold = 1024

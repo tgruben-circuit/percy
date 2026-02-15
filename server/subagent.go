@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"shelley.exe.dev/claudetool"
-	"shelley.exe.dev/db/generated"
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // SubagentRunner implements claudetool.SubagentRunner.

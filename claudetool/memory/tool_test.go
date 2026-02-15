@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	memdb "shelley.exe.dev/memory"
+	memdb "github.com/tgruben-circuit/percy/memory"
 )
 
 func TestMemorySearchTool(t *testing.T) {

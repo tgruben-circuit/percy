@@ -540,11 +540,11 @@ function ChatInterface({
       ready: boolean;
       max_context_tokens?: number;
     }>
-  >(window.__SHELLEY_INIT__?.models || []);
+  >(window.__PERCY_INIT__?.models || []);
   const [selectedModel, setSelectedModelState] = useState<string>(() => {
     // First check localStorage for a sticky model preference
-    const storedModel = localStorage.getItem("shelley_selected_model");
-    const initModels = window.__SHELLEY_INIT__?.models || [];
+    const storedModel = localStorage.getItem("percy_selected_model");
+    const initModels = window.__PERCY_INIT__?.models || [];
     // Validate that the stored model exists and is ready
     if (storedModel) {
       const modelInfo = initModels.find((m) => m.id === storedModel);
@@ -553,7 +553,7 @@ function ChatInterface({
       }
     }
     // Fall back to server default or first ready model
-    const defaultModel = window.__SHELLEY_INIT__?.default_model;
+    const defaultModel = window.__PERCY_INIT__?.default_model;
     if (defaultModel) {
       return defaultModel;
     }
@@ -563,14 +563,14 @@ function ChatInterface({
   // Wrapper to persist model selection to localStorage
   const setSelectedModel = (model: string) => {
     setSelectedModelState(model);
-    localStorage.setItem("shelley_selected_model", model);
+    localStorage.setItem("percy_selected_model", model);
   };
   const [selectedCwd, setSelectedCwdState] = useState<string>("");
   const [cwdInitialized, setCwdInitialized] = useState(false);
   // Wrapper to persist cwd selection to localStorage
   const setSelectedCwd = (cwd: string) => {
     setSelectedCwdState(cwd);
-    localStorage.setItem("shelley_selected_cwd", cwd);
+    localStorage.setItem("percy_selected_cwd", cwd);
   };
 
   // Reset cwdInitialized when switching to a new conversation so we re-read from localStorage
@@ -585,7 +585,7 @@ function ChatInterface({
     if (cwdInitialized) return;
 
     // First check localStorage for a sticky cwd preference
-    const storedCwd = localStorage.getItem("shelley_selected_cwd");
+    const storedCwd = localStorage.getItem("percy_selected_cwd");
     if (storedCwd) {
       setSelectedCwdState(storedCwd);
       setCwdInitialized(true);
@@ -600,7 +600,7 @@ function ChatInterface({
     }
 
     // Fall back to server default
-    const defaultCwd = window.__SHELLEY_INIT__?.default_cwd || "";
+    const defaultCwd = window.__PERCY_INIT__?.default_cwd || "";
     if (defaultCwd) {
       setSelectedCwdState(defaultCwd);
       setCwdInitialized(true);
@@ -617,8 +617,8 @@ function ChatInterface({
       .then((newModels) => {
         setModels(newModels);
         // Also update the global init data so other components see the change
-        if (window.__SHELLEY_INIT__) {
-          window.__SHELLEY_INIT__.models = newModels;
+        if (window.__PERCY_INIT__) {
+          window.__PERCY_INIT__.models = newModels;
         }
       })
       .catch((err) => {
@@ -643,9 +643,9 @@ function ChatInterface({
   const [agentWorking, setAgentWorking] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [contextWindowSize, setContextWindowSize] = useState(0);
-  const terminalURL = window.__SHELLEY_INIT__?.terminal_url || null;
-  const links = window.__SHELLEY_INIT__?.links || [];
-  const hostname = window.__SHELLEY_INIT__?.hostname || "localhost";
+  const terminalURL = window.__PERCY_INIT__?.terminal_url || null;
+  const links = window.__PERCY_INIT__?.links || [];
+  const hostname = window.__PERCY_INIT__?.hostname || "localhost";
   const { hasUpdate, openModal: openVersionModal, VersionModal } = useVersionChecker();
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isDisconnected, setIsDisconnected] = useState(false);
@@ -1021,7 +1021,7 @@ function ChatInterface({
           id: `term-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
           command: shellCommand,
           cwd:
-            currentConversation?.cwd || selectedCwd || window.__SHELLEY_INIT__?.default_cwd || "/",
+            currentConversation?.cwd || selectedCwd || window.__PERCY_INIT__?.default_cwd || "/",
           createdAt: new Date(),
         };
         setEphemeralTerminals((prev) => [...prev, terminal]);
@@ -1176,7 +1176,7 @@ function ChatInterface({
   };
 
   const getDisplayTitle = () => {
-    return currentConversation?.slug || "Shelley";
+    return currentConversation?.slug || "Percy";
   };
 
   // Process messages to coalesce tool calls
@@ -1379,18 +1379,8 @@ function ChatInterface({
         <div className="empty-state">
           <div className="empty-state-content">
             <p className="text-base" style={{ marginBottom: "1rem", lineHeight: "1.6" }}>
-              Shelley is an agent, running on <strong>{hostname}</strong>. You can ask Shelley to do
-              stuff. If you build a web site with Shelley, you can use exe.dev&apos;s proxy features
-              (see{" "}
-              <a
-                href="https://exe.dev/docs/proxy"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: "var(--blue-text)", textDecoration: "underline" }}
-              >
-                docs
-              </a>
-              ) to visit it over the web at{" "}
+              Percy is an agent, running on <strong>{hostname}</strong>. You can ask Percy to do
+              stuff. If you build a web site with Percy, you can visit it over the web at{" "}
               <a
                 href={proxyURL}
                 target="_blank"
@@ -1504,7 +1494,7 @@ function ChatInterface({
             </button>
           )}
 
-          <h1 className="header-title" title={currentConversation?.slug || "Shelley"}>
+          <h1 className="header-title" title={currentConversation?.slug || "Percy"}>
             {getDisplayTitle()}
           </h1>
         </div>

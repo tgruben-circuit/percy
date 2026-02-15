@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	"shelley.exe.dev/ui"
+	"github.com/tgruben-circuit/percy/ui"
 )
 
 // Version and Tag are set at build time via ldflags
@@ -26,10 +26,10 @@ type Info struct {
 
 // GetInfo returns build information using runtime/debug.ReadBuildInfo,
 // falling back to the embedded build-info.json from the UI build.
-// The SHELLEY_VERSION_OVERRIDE environment variable can override the tag for testing.
+// The PERCY_VERSION_OVERRIDE environment variable can override the tag for testing.
 func GetInfo() Info {
 	tag := Tag
-	if override := os.Getenv("SHELLEY_VERSION_OVERRIDE"); override != "" {
+	if override := os.Getenv("PERCY_VERSION_OVERRIDE"); override != "" {
 		tag = override
 	}
 

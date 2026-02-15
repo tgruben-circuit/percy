@@ -1,4 +1,4 @@
-module shelley.exe.dev
+module github.com/tgruben-circuit/percy
 
 go 1.26.0
 

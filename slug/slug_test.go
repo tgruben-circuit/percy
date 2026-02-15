@@ -7,9 +7,9 @@ import (
 	"os"
 	"testing"
 
-	"shelley.exe.dev/db"
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/models"
+	"github.com/tgruben-circuit/percy/db"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/models"
 )
 
 func TestSanitize(t *testing.T) {

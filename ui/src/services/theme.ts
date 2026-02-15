@@ -1,6 +1,6 @@
 export type ThemeMode = "system" | "light" | "dark";
 
-const STORAGE_KEY = "shelley-theme";
+const STORAGE_KEY = "percy-theme";
 
 export function getStoredTheme(): ThemeMode {
   const stored = localStorage.getItem(STORAGE_KEY);

@@ -1,4 +1,4 @@
-const STORAGE_KEY = "shelley-notification-prefs";
+const STORAGE_KEY = "percy-notification-prefs";
 
 export interface NotificationPreferences {
   channels: {

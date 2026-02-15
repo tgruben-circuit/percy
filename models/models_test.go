@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 func TestAll(t *testing.T) {

@@ -1,4 +1,4 @@
-// Package db provides database operations for the Shelley AI coding agent.
+// Package db provides database operations for the Percy AI coding agent.
 package db
 
 import (

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // TestTextContentNoExtraFields verifies that text content doesn't include fields from other content types

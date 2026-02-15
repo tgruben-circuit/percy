@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/llm"
-	"shelley.exe.dev/llm/ant"
+	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/llm/ant"
 )
 
 // TestLoopWithClaude tests the loop with actual Claude API if key is available

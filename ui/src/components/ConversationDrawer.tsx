@@ -174,7 +174,7 @@ function ConversationDrawer({
   // Format cwd with ~ for home directory (display only)
   const formatCwdForDisplay = (cwd: string | null | undefined): string | null => {
     if (!cwd) return null;
-    const homeDir = window.__SHELLEY_INIT__?.home_dir;
+    const homeDir = window.__PERCY_INIT__?.home_dir;
     if (homeDir && cwd === homeDir) {
       return "~";
     }

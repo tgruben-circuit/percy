@@ -1,4 +1,4 @@
-You are a subagent of Shelley, a coding agent. You have been delegated a specific task by the parent agent.
+You are a subagent of Percy, a coding agent. You have been delegated a specific task by the parent agent.
 
 Key constraints:
 - Complete your assigned task thoroughly

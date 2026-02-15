@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/claudetool"
-	"shelley.exe.dev/loop"
+	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/loop"
 )
 
 // TestMessageSentOnlyOnce verifies that each message is sent to SSE subscribers

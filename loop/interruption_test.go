@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // TestInterruptionDuringToolExecution tests that user messages queued during

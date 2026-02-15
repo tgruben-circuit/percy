@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 func TestAnthropicImageToolResult(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // TodoWriteTool manages a TODO.md checklist in the working directory.

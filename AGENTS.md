@@ -5,8 +5,8 @@
    are no compatibility concerns yet.
 5. The "predictable" model is a test fixture that lets you specify what a model would say if you said
    a thing. This is useful for interactive testing with a browser, since you don't rely on a model,
-   and can fabricate some inputs and outputs. To test things, launch shelley with the relevant flag
-   to only expose this model, and use shelley with a browser.
+   and can fabricate some inputs and outputs. To test things, launch percy with the relevant flag
+   to only expose this model, and use percy with a browser.
 6. Build the UI (`make ui` or `cd ui && pnpm install && pnpm run build`) before running Go tests so `ui/dist` exists for the embed.
 7. Run TypeScript type checking with `cd ui && pnpm run type-check`. Run linting with `pnpm run lint`.
 8. Run Go unit tests with `go test ./server` (or narrower packages while iterating) once the UI bundle is built.
@@ -19,12 +19,12 @@
    ```
    Simply setting `input.value = '...'` won't work because React won't detect the change.
 10. Commit your changes before finishing your turn.
-11. If you are testing Shelley itself, be aware that you might be running "under" shelley,
-  and indiscriminately running pkill -f shelley may break things.
-12. To test the Shelley UI in a separate instance, build with `make build`, then run on a
+11. If you are testing Percy itself, be aware that you might be running "under" percy,
+  and indiscriminately running pkill -f percy may break things.
+12. To test the Percy UI in a separate instance, build with `make build`, then run on a
     different port with a separate database:
     ```
-    ./bin/shelley -config /exe.dev/shelley.json -db /tmp/shelley-test.db serve -port 8002
+    ./bin/percy -db /tmp/percy-test.db serve -port 8002
     ```
     Then use browser tools to navigate to http://localhost:8002/ and interact with the UI.
 13. NEVER use alert(), confirm(), or prompt(). Use proper UI components like tooltips, modals, or toasts instead.

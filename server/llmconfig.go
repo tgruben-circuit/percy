@@ -3,7 +3,7 @@ package server
 import (
 	"log/slog"
 
-	"shelley.exe.dev/db"
+	"github.com/tgruben-circuit/percy/db"
 )
 
 // Link represents a custom link to be displayed in the UI
@@ -33,7 +33,7 @@ type LLMConfig struct {
 	// Links are custom links to be displayed in the UI (optional)
 	Links []Link
 
-	// NotificationChannels is a list of notification channel configs from shelley.json.
+	// NotificationChannels is a list of notification channel configs from percy.json.
 	// Each entry is a map with at least a "type" key, plus channel-specific fields.
 	NotificationChannels []map[string]any
 

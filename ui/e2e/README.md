@@ -1,6 +1,6 @@
-# Shelley E2E Tests with Playwright
+# Percy E2E Tests with Playwright
 
-This directory contains end-to-end tests for the Shelley web interface using Playwright.
+This directory contains end-to-end tests for the Percy web interface using Playwright.
 
 ## Features
 
@@ -79,7 +79,7 @@ Screenshots are automatically saved in `test-results/` directory:
 
 ## Predictable LLM
 
-The tests use Shelley's predictable LLM model which provides:
+The tests use Percy's predictable LLM model which provides:
 - Consistent responses for the same inputs
 - Deterministic tool usage
 - Predictable conversation flows
@@ -88,7 +88,7 @@ The tests use Shelley's predictable LLM model which provides:
 ## Configuration
 
 Playwright configuration is in `playwright.config.ts`:
-- Auto-starts Shelley server with predictable model
+- Auto-starts Percy server with predictable model
 - Configures mobile-first viewports
 - Sets up screenshot and video capture
 - Handles test timeouts and retries

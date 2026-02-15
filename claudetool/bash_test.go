@@ -164,14 +164,14 @@ func TestExecuteBash(t *testing.T) {
 		}
 	})
 
-	// Test SHELLEY_CONVERSATION_ID environment variable is set when configured
-	t.Run("SHELLEY_CONVERSATION_ID Environment Variable", func(t *testing.T) {
+	// Test PERCY_CONVERSATION_ID environment variable is set when configured
+	t.Run("PERCY_CONVERSATION_ID Environment Variable", func(t *testing.T) {
 		bashWithConvID := &BashTool{
 			WorkingDir:     NewMutableWorkingDir("/"),
 			ConversationID: "test-conv-123",
 		}
 		req := bashInput{
-			Command: "echo $SHELLEY_CONVERSATION_ID",
+			Command: "echo $PERCY_CONVERSATION_ID",
 		}
 
 		output, err := bashWithConvID.executeBash(ctx, req, 5*time.Second)
@@ -181,14 +181,14 @@ func TestExecuteBash(t *testing.T) {
 
 		want := "test-conv-123\n"
 		if output != want {
-			t.Errorf("Expected SHELLEY_CONVERSATION_ID=test-conv-123, got %q", output)
+			t.Errorf("Expected PERCY_CONVERSATION_ID=test-conv-123, got %q", output)
 		}
 	})
 
-	// Test SHELLEY_CONVERSATION_ID is not set when not configured
-	t.Run("SHELLEY_CONVERSATION_ID Not Set When Empty", func(t *testing.T) {
+	// Test PERCY_CONVERSATION_ID is not set when not configured
+	t.Run("PERCY_CONVERSATION_ID Not Set When Empty", func(t *testing.T) {
 		req := bashInput{
-			Command: "echo \"conv_id:$SHELLEY_CONVERSATION_ID:\"",
+			Command: "echo \"conv_id:$PERCY_CONVERSATION_ID:\"",
 		}
 
 		output, err := bashTool.executeBash(ctx, req, 5*time.Second)
@@ -199,7 +199,7 @@ func TestExecuteBash(t *testing.T) {
 		// Should be empty since ConversationID is not set on bashTool
 		want := "conv_id::\n"
 		if output != want {
-			t.Errorf("Expected empty SHELLEY_CONVERSATION_ID, got %q", output)
+			t.Errorf("Expected empty PERCY_CONVERSATION_ID, got %q", output)
 		}
 	})
 
@@ -432,27 +432,27 @@ func TestIsNoTrailerSet(t *testing.T) {
 	// Test when config is set to true
 	t.Run("Config Set True", func(t *testing.T) {
 		// Set the global config
-		cmd := exec.Command("git", "config", "--global", "shelley.no-trailer", "true")
+		cmd := exec.Command("git", "config", "--global", "percy.no-trailer", "true")
 		if err := cmd.Run(); err != nil {
 			t.Skipf("Could not set git config: %v", err)
 		}
-		defer func() { _ = exec.Command("git", "config", "--global", "--unset", "shelley.no-trailer").Run() }()
+		defer func() { _ = exec.Command("git", "config", "--global", "--unset", "percy.no-trailer").Run() }()
 
 		if !bashTool.isNoTrailerSet() {
-			t.Error("Expected isNoTrailerSet() to be true when shelley.no-trailer=true")
+			t.Error("Expected isNoTrailerSet() to be true when percy.no-trailer=true")
 		}
 	})
 
 	// Test when config is set to false
 	t.Run("Config Set False", func(t *testing.T) {
-		cmd := exec.Command("git", "config", "--global", "shelley.no-trailer", "false")
+		cmd := exec.Command("git", "config", "--global", "percy.no-trailer", "false")
 		if err := cmd.Run(); err != nil {
 			t.Skipf("Could not set git config: %v", err)
 		}
-		defer func() { _ = exec.Command("git", "config", "--global", "--unset", "shelley.no-trailer").Run() }()
+		defer func() { _ = exec.Command("git", "config", "--global", "--unset", "percy.no-trailer").Run() }()
 
 		if bashTool.isNoTrailerSet() {
-			t.Error("Expected isNoTrailerSet() to be false when shelley.no-trailer=false")
+			t.Error("Expected isNoTrailerSet() to be false when percy.no-trailer=false")
 		}
 	})
 }

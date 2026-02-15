@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"shelley.exe.dev/llm"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 func TestResponsesServiceBasic(t *testing.T) {
