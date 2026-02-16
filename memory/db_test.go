@@ -59,10 +59,17 @@ func TestOpenCreatesDatabase(t *testing.T) {
 		t.Fatalf("database file not created: %v", err)
 	}
 
-	_, err = mdb.db.Exec(`INSERT INTO chunks (chunk_id, source_type, source_id, source_name, chunk_index, text)
-		VALUES ('test1', 'conversation', 'c1', 'test', 0, 'hello world')`)
+	// Verify cells table works.
+	_, err = mdb.db.Exec(`INSERT INTO cells (cell_id, source_type, source_id, source_name, cell_type, salience, content)
+		VALUES ('test1', 'conversation', 'c1', 'test', 'fact', 0.5, 'hello world')`)
 	if err != nil {
-		t.Fatalf("chunks table not created: %v", err)
+		t.Fatalf("cells table not created: %v", err)
+	}
+
+	// Verify topics table works.
+	_, err = mdb.db.Exec(`INSERT INTO topics (topic_id, name) VALUES ('t1', 'test topic')`)
+	if err != nil {
+		t.Fatalf("topics table not created: %v", err)
 	}
 
 	_, err = mdb.db.Exec(`INSERT INTO index_state (source_type, source_id, indexed_at, hash)
@@ -132,16 +139,8 @@ func TestMigrateFromOldSchema(t *testing.T) {
 	}
 	defer mdb.Close()
 
-	// Old chunks data should be gone (schemaSQL recreates chunks table empty,
-	// which will be removed in a later cleanup task).
+	// Old chunks table should have been dropped by migration.
 	var count int
-	err = mdb.QueryRow("SELECT COUNT(*) FROM chunks").Scan(&count)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if count != 0 {
-		t.Error("chunks table should be empty after migration")
-	}
 
 	// New cells table should exist.
 	err = mdb.QueryRow("SELECT COUNT(*) FROM cells").Scan(&count)

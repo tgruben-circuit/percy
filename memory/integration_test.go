@@ -24,7 +24,7 @@ func TestIntegrationFullFlow(t *testing.T) {
 		{Role: "user", Text: "Can you show me middleware for HTTP handlers?"},
 		{Role: "assistant", Text: "Here is an authentication middleware that extracts and validates the bearer token."},
 	}
-	if err := mdb.IndexConversation(ctx, "conv-auth", "Auth Discussion", authMessages, embedder); err != nil {
+	if err := mdb.IndexConversation(ctx, "conv-auth", "Auth Discussion", authMessages, embedder, nil); err != nil {
 		t.Fatalf("IndexConversation (auth): %v", err)
 	}
 
@@ -52,42 +52,42 @@ We use PostgreSQL for persistent storage with connection pooling.
 	}
 
 	// Step 3: Search "authentication JWT" — verify results found.
-	results, err := mdb.HybridSearch("authentication JWT", nil, "", 10)
+	results, err := mdb.TwoTierSearch("authentication JWT", nil, "", 10)
 	if err != nil {
-		t.Fatalf("HybridSearch (authentication JWT): %v", err)
+		t.Fatalf("TwoTierSearch (authentication JWT): %v", err)
 	}
 	if len(results) == 0 {
 		t.Fatal("expected results for 'authentication JWT', got 0")
 	}
 	t.Logf("search 'authentication JWT' returned %d results", len(results))
 	for _, r := range results {
-		t.Logf("  chunk=%s source_type=%s source_name=%s score=%.4f", r.ChunkID, r.SourceType, r.SourceName, r.Score)
+		t.Logf("  type=%s source_type=%s source_name=%s score=%.4f", r.ResultType, r.SourceType, r.SourceName, r.Score)
 	}
 
-	// Step 4: Search "JWT" with sourceType "file" — verify results found and all have SourceType "file".
-	fileResults, err := mdb.HybridSearch("JWT", nil, "file", 10)
+	// Step 4: Search "JWT" with sourceType "file" — verify results found and all cells have SourceType "file".
+	fileResults, err := mdb.TwoTierSearch("JWT", nil, "file", 10)
 	if err != nil {
-		t.Fatalf("HybridSearch (JWT, file): %v", err)
+		t.Fatalf("TwoTierSearch (JWT, file): %v", err)
 	}
 	if len(fileResults) == 0 {
 		t.Fatal("expected file results for 'JWT', got 0")
 	}
 	for _, r := range fileResults {
-		if r.SourceType != "file" {
+		if r.ResultType == "cell" && r.SourceType != "file" {
 			t.Errorf("expected source_type='file', got %q", r.SourceType)
 		}
 	}
 	t.Logf("search 'JWT' (file only) returned %d results", len(fileResults))
 
 	// Step 5: Re-index same conversation — verify no error (hash skip).
-	if err := mdb.IndexConversation(ctx, "conv-auth", "Auth Discussion", authMessages, embedder); err != nil {
+	if err := mdb.IndexConversation(ctx, "conv-auth", "Auth Discussion", authMessages, embedder, nil); err != nil {
 		t.Fatalf("re-index same conversation: %v", err)
 	}
 
 	// Verify content is still searchable after the skip.
-	afterSkip, err := mdb.HybridSearch("authentication", nil, "", 10)
+	afterSkip, err := mdb.TwoTierSearch("authentication", nil, "", 10)
 	if err != nil {
-		t.Fatalf("HybridSearch after re-index: %v", err)
+		t.Fatalf("TwoTierSearch after re-index: %v", err)
 	}
 	if len(afterSkip) == 0 {
 		t.Fatal("expected results after re-index skip, got 0")
@@ -100,20 +100,20 @@ We use PostgreSQL for persistent storage with connection pooling.
 		{Role: "user", Text: "What about schema migrations?"},
 		{Role: "assistant", Text: "Use a migration tool like golang-migrate to version your database schema changes."},
 	}
-	if err := mdb.IndexConversation(ctx, "conv-db", "Database Design", dbMessages, embedder); err != nil {
+	if err := mdb.IndexConversation(ctx, "conv-db", "Database Design", dbMessages, embedder, nil); err != nil {
 		t.Fatalf("IndexConversation (db): %v", err)
 	}
 
 	// Step 7: Search "database schema" — verify results found.
-	dbResults, err := mdb.HybridSearch("database schema", nil, "", 10)
+	dbResults, err := mdb.TwoTierSearch("database schema", nil, "", 10)
 	if err != nil {
-		t.Fatalf("HybridSearch (database schema): %v", err)
+		t.Fatalf("TwoTierSearch (database schema): %v", err)
 	}
 	if len(dbResults) == 0 {
 		t.Fatal("expected results for 'database schema', got 0")
 	}
 	t.Logf("search 'database schema' returned %d results", len(dbResults))
 	for _, r := range dbResults {
-		t.Logf("  chunk=%s source_type=%s source_name=%s score=%.4f", r.ChunkID, r.SourceType, r.SourceName, r.Score)
+		t.Logf("  type=%s source_type=%s source_name=%s score=%.4f", r.ResultType, r.SourceType, r.SourceName, r.Score)
 	}
 }

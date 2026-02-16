@@ -55,54 +55,9 @@ func (d *DB) SetIndexState(sourceType, sourceID, hash string) error {
 	return nil
 }
 
-// IndexConversation indexes a conversation's messages into the chunks table.
-// It skips re-indexing when the content hash has not changed.
-// If embedder is non-nil, embeddings are generated (errors are ignored for
-// graceful degradation).
-func (d *DB) IndexConversation(ctx context.Context, conversationID, slug string, messages []MessageText, embedder Embedder) error {
-	hash := hashMessages(messages)
-
-	indexed, err := d.IsIndexed("conversation", conversationID, hash)
-	if err != nil {
-		return err
-	}
-	if indexed {
-		return nil
-	}
-
-	chunks := ChunkMessages(messages, 1024)
-
-	if err := d.DeleteChunksBySource("conversation", conversationID); err != nil {
-		return err
-	}
-
-	// Batch-embed all chunk texts if an embedder is provided.
-	var embeddings [][]float32
-	if embedder != nil {
-		texts := make([]string, len(chunks))
-		for i, c := range chunks {
-			texts[i] = c.Text
-		}
-		embeddings, _ = embedder.Embed(ctx, texts) // ignore errors — graceful degradation
-	}
-
-	for i, c := range chunks {
-		chunkID := fmt.Sprintf("conv_%s_%d", conversationID, i)
-		var embBlob []byte
-		if i < len(embeddings) && embeddings[i] != nil {
-			embBlob = SerializeEmbedding(embeddings[i])
-		}
-		if err := d.InsertChunk(chunkID, "conversation", conversationID, slug, c.Index, c.Text, embBlob); err != nil {
-			return err
-		}
-	}
-
-	return d.SetIndexState("conversation", conversationID, hash)
-}
-
-// IndexConversationV2 indexes a conversation using LLM-powered extraction.
+// IndexConversation indexes a conversation using LLM-powered extraction.
 // Falls back to chunk-based indexing if svc is nil.
-func (d *DB) IndexConversationV2(ctx context.Context, conversationID, slug string, messages []MessageText, embedder Embedder, svc llm.Service) error {
+func (d *DB) IndexConversation(ctx context.Context, conversationID, slug string, messages []MessageText, embedder Embedder, svc llm.Service) error {
 	hash := hashMessages(messages)
 
 	indexed, err := d.IsIndexed("conversation", conversationID, hash)
@@ -138,7 +93,7 @@ func (d *DB) IndexConversationV2(ctx context.Context, conversationID, slug strin
 	// Assign cells to topics.
 	assigned, err := AssignCellsToTopics(ctx, d, extracted, embedder)
 	if err != nil {
-		return fmt.Errorf("memory: index v2 assign topics: %w", err)
+		return fmt.Errorf("memory: index assign topics: %w", err)
 	}
 
 	// Insert each cell.
@@ -193,7 +148,7 @@ func (d *DB) IndexConversationV2(ctx context.Context, conversationID, slug strin
 	return d.SetIndexState("conversation", conversationID, hash)
 }
 
-// IndexFile indexes a file's content into the chunks table.
+// IndexFile indexes a file's content into the cells table.
 // It skips re-indexing when the content hash has not changed.
 func (d *DB) IndexFile(ctx context.Context, filePath, fileName, content string, embedder Embedder) error {
 	hash := hashString(content)
@@ -208,7 +163,7 @@ func (d *DB) IndexFile(ctx context.Context, filePath, fileName, content string, 
 
 	chunks := ChunkMarkdown(content, 1024)
 
-	if err := d.DeleteChunksBySource("file", filePath); err != nil {
+	if err := d.DeleteCellsBySource("file", filePath); err != nil {
 		return err
 	}
 
@@ -221,19 +176,29 @@ func (d *DB) IndexFile(ctx context.Context, filePath, fileName, content string, 
 		embeddings, _ = embedder.Embed(ctx, texts)
 	}
 
-	// Use first 8 chars of the hash for chunk IDs.
+	// Use first 8 chars of the hash for cell IDs.
 	short := hash
 	if len(short) > 8 {
 		short = short[:8]
 	}
 
 	for i, c := range chunks {
-		chunkID := fmt.Sprintf("file_%s_%d", short, i)
+		cellID := fmt.Sprintf("file_%s_%d", short, i)
 		var embBlob []byte
 		if i < len(embeddings) && embeddings[i] != nil {
 			embBlob = SerializeEmbedding(embeddings[i])
 		}
-		if err := d.InsertChunk(chunkID, "file", filePath, fileName, c.Index, c.Text, embBlob); err != nil {
+		cell := Cell{
+			CellID:     cellID,
+			SourceType: "file",
+			SourceID:   filePath,
+			SourceName: fileName,
+			CellType:   "fact",
+			Salience:   0.5,
+			Content:    c.Text,
+			Embedding:  embBlob,
+		}
+		if err := d.InsertCell(cell); err != nil {
 			return err
 		}
 	}

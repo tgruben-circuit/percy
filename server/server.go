@@ -376,7 +376,7 @@ func (s *Server) indexConversation(conversationID string) {
 		llmSvc, _ = s.llmManager.GetService(modelID) // best-effort
 	}
 
-	if err := s.memoryDB.IndexConversationV2(ctx, conversationID, slug, messages, s.embedder, llmSvc); err != nil {
+	if err := s.memoryDB.IndexConversation(ctx, conversationID, slug, messages, s.embedder, llmSvc); err != nil {
 		s.logger.Warn("Memory index: failed to index conversation", "conversationID", conversationID, "error", err)
 		return
 	}
