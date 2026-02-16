@@ -45,6 +45,10 @@ func (d *DB) Close() error {
 	return d.db.Close()
 }
 
+func (d *DB) QueryRow(query string, args ...any) *sql.Row {
+	return d.db.QueryRow(query, args...)
+}
+
 func MemoryDBPath(percyDBPath string) string {
 	dir := filepath.Dir(percyDBPath)
 	return filepath.Join(dir, "memory.db")
