@@ -313,7 +313,7 @@ func (s *Server) indexConversation(conversationID string) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	conv, err := s.db.GetConversationByID(ctx, conversationID)
@@ -365,7 +365,18 @@ func (s *Server) indexConversation(conversationID string) {
 		return
 	}
 
-	if err := s.memoryDB.IndexConversation(ctx, conversationID, slug, messages, s.embedder); err != nil {
+	// Get an LLM service for extraction. Use the conversation's model if available,
+	// otherwise use the server's default model.
+	var llmSvc llm.Service
+	modelID := s.defaultModel
+	if conv.Model != nil && *conv.Model != "" {
+		modelID = *conv.Model
+	}
+	if modelID != "" {
+		llmSvc, _ = s.llmManager.GetService(modelID) // best-effort
+	}
+
+	if err := s.memoryDB.IndexConversationV2(ctx, conversationID, slug, messages, s.embedder, llmSvc); err != nil {
 		s.logger.Warn("Memory index: failed to index conversation", "conversationID", conversationID, "error", err)
 		return
 	}
