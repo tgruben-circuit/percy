@@ -162,6 +162,8 @@ func (o *Orchestrator) MergeAndResolve(ctx context.Context, taskID string, mw *M
 	result, err := mw.Merge(ctx, task.Result.Branch, task.Title, resolver)
 	if err != nil {
 		slog.Error("merge failed, requeuing", "task", taskID, "error", err)
+		// Fail first (Requeue requires assigned/working/failed status)
+		o.node.Tasks.Fail(ctx, taskID, TaskResult{Summary: fmt.Sprintf("merge failed: %v", err)})
 		o.node.Tasks.Requeue(ctx, taskID)
 		return err
 	}
