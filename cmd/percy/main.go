@@ -9,11 +9,9 @@ import (
 	"log/slog"
 	"net"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/tgruben-circuit/percy/claudetool"
 	memtool "github.com/tgruben-circuit/percy/claudetool/memory"
@@ -55,7 +53,6 @@ func main() {
 		flag.PrintDefaults()
 		fmt.Fprintf(flag.CommandLine.Output(), "\nCommands:\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  serve [flags]                 Start the web server\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "  orchestrate [flags]           Start cluster orchestrator\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  unpack-template <name> <dir>  Unpack a project template to a directory\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  version                       Print version information as JSON\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "\nUse '%s <command> -h' for command-specific help\n", os.Args[0])
@@ -74,8 +71,6 @@ func main() {
 	switch command {
 	case "serve":
 		runServe(global, args[1:])
-	case "orchestrate":
-		runOrchestrate(global, args[1:])
 	case "unpack-template":
 		runUnpackTemplate(args[1:])
 	case "version":
@@ -219,51 +214,6 @@ func runServe(global GlobalConfig, args []string) {
 		logger.Error("Server failed", "error", err)
 		os.Exit(1)
 	}
-}
-
-func runOrchestrate(global GlobalConfig, args []string) {
-	fs := flag.NewFlagSet("orchestrate", flag.ExitOnError)
-	clusterAddr := fs.String("cluster", ":4222", "NATS listen address")
-	repo := fs.String("repo", "", "Repository to orchestrate")
-	if err := fs.Parse(args); err != nil {
-		fmt.Fprintf(os.Stderr, "Error parsing orchestrate flags: %v\n", err)
-		os.Exit(1)
-	}
-
-	if *repo == "" {
-		fmt.Fprintf(os.Stderr, "error: --repo is required\n")
-		os.Exit(1)
-	}
-
-	logger := setupLogging(global.Debug)
-
-	storeDir := filepath.Join(filepath.Dir(global.DBPath), "nats-data")
-	if err := os.MkdirAll(storeDir, 0o755); err != nil {
-		logger.Error("Failed to create NATS store directory", "path", storeDir, "error", err)
-		os.Exit(1)
-	}
-
-	node, err := cluster.StartNode(context.Background(), cluster.NodeConfig{
-		AgentID:    "orchestrator",
-		AgentName:  "orchestrator",
-		ListenAddr: *clusterAddr,
-		StoreDir:   storeDir,
-		Logger:     logger,
-	})
-	if err != nil {
-		logger.Error("Failed to start orchestrator", "error", err)
-		os.Exit(1)
-	}
-
-	logger.Info("Orchestrator started", "nats", node.ClientURL(), "repo", *repo)
-
-	// Wait for shutdown signal
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	<-sigCh
-
-	logger.Info("Shutting down orchestrator")
-	node.Stop()
 }
 
 func setupLogging(debug bool) *slog.Logger {
