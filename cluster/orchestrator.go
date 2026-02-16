@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"log/slog"
 )
 
 // PlannedTask is a task bundled with its dependency list.
@@ -133,6 +134,49 @@ func (o *Orchestrator) completedSet(ctx context.Context) (map[string]bool, error
 		set[t.ID] = true
 	}
 	return set, nil
+}
+
+// MergeAndResolve merges a completed task's branch into the working branch,
+// then resolves dependencies to unblock waiting tasks.
+func (o *Orchestrator) MergeAndResolve(ctx context.Context, taskID string, mw *MergeWorktree, resolver ConflictResolver) error {
+	task, err := o.node.Tasks.Get(ctx, taskID)
+	if err != nil {
+		return fmt.Errorf("merge: get task %s: %w", taskID, err)
+	}
+
+	// Only merge completed tasks with a branch
+	if task.Status != TaskStatusCompleted {
+		return nil
+	}
+	if task.Result.Branch == "" {
+		o.ResolveDependencies(ctx)
+		return nil
+	}
+	if task.Result.MergeStatus != "" {
+		// Already merged
+		o.ResolveDependencies(ctx)
+		return nil
+	}
+
+	// Merge the branch
+	result, err := mw.Merge(ctx, task.Result.Branch, task.Title, resolver)
+	if err != nil {
+		slog.Error("merge failed, requeuing", "task", taskID, "error", err)
+		o.node.Tasks.Requeue(ctx, taskID)
+		return err
+	}
+
+	// Update task result with merge info
+	task.Result.MergeStatus = result.MergeStatus
+	task.Result.MergeCommit = result.MergeCommit
+	o.node.Tasks.Complete(ctx, taskID, task.Result)
+
+	// Clean up worker branch
+	mw.DeleteBranch(ctx, task.Result.Branch)
+
+	// Resolve dependencies
+	o.ResolveDependencies(ctx)
+	return nil
 }
 
 // allIn returns true if every element of ids is present in the set.

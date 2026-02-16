@@ -54,7 +54,7 @@ func TestMonitorResolvesDependencies(t *testing.T) {
 	}
 
 	// Start monitor in background goroutine.
-	mon := NewMonitor(node, orch)
+	mon := NewMonitor(node, orch, nil, nil)
 	go mon.Run(ctx)
 
 	// Claim and complete t1. Complete publishes a status event which

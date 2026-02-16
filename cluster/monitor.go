@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -10,15 +11,19 @@ import (
 
 // Monitor watches for task status changes and resolves dependencies.
 type Monitor struct {
-	node         *Node
-	orchestrator *Orchestrator
+	node          *Node
+	orchestrator  *Orchestrator
+	mergeWorktree *MergeWorktree
+	resolver      ConflictResolver
 }
 
 // NewMonitor creates a Monitor tied to the given cluster node and orchestrator.
-func NewMonitor(node *Node, orch *Orchestrator) *Monitor {
+func NewMonitor(node *Node, orch *Orchestrator, mw *MergeWorktree, resolver ConflictResolver) *Monitor {
 	return &Monitor{
-		node:         node,
-		orchestrator: orch,
+		node:          node,
+		orchestrator:  orch,
+		mergeWorktree: mw,
+		resolver:      resolver,
 	}
 }
 
@@ -27,8 +32,20 @@ func NewMonitor(node *Node, orch *Orchestrator) *Monitor {
 // cancelled.
 func (m *Monitor) Run(ctx context.Context) {
 	sub, err := m.node.NC().Subscribe("task.*.status", func(msg *nats.Msg) {
-		if _, err := m.orchestrator.ResolveDependencies(ctx); err != nil {
-			slog.Error("monitor: resolve dependencies", "error", err)
+		parts := strings.Split(msg.Subject, ".")
+		if len(parts) != 3 {
+			return
+		}
+		taskID := parts[1]
+
+		if m.mergeWorktree != nil {
+			if err := m.orchestrator.MergeAndResolve(ctx, taskID, m.mergeWorktree, m.resolver); err != nil {
+				slog.Error("monitor: merge and resolve", "task", taskID, "error", err)
+			}
+		} else {
+			if _, err := m.orchestrator.ResolveDependencies(ctx); err != nil {
+				slog.Error("monitor: resolve dependencies", "error", err)
+			}
 		}
 	})
 	if err != nil {

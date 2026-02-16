@@ -62,7 +62,7 @@ func TestE2EWorkerMonitorFlow(t *testing.T) {
 	}
 
 	// 6. Start monitor for dependency resolution.
-	mon := NewMonitor(orchNode, orch)
+	mon := NewMonitor(orchNode, orch, nil, nil)
 	go mon.Run(ctx)
 
 	// 7. Wait for both tasks to complete (monitor should resolve t2 after t1 completes).
