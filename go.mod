@@ -9,6 +9,8 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/fynelabs/selfupdate v0.2.1
 	github.com/google/uuid v1.6.0
+	github.com/nats-io/nats-server/v2 v2.12.4
+	github.com/nats-io/nats.go v1.48.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/pkg/diff v0.0.0-20241224192749-4e6772a4315c
 	github.com/richardlehane/crock32 v1.0.1
@@ -26,6 +28,7 @@ require (
 require (
 	cel.dev/expr v0.24.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/antithesishq/antithesis-sdk-go v0.5.0-default-no-op // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/bitfield/gotestdox v0.2.2 // indirect
 	github.com/cubicdaiya/gonp v1.0.4 // indirect
@@ -37,6 +40,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/google/cel-go v0.26.1 // indirect
+	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -44,8 +48,13 @@ require (
 	github.com/jackc/pgx/v5 v5.7.5 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/klauspost/compress v1.18.3 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/minio/highwayhash v1.0.4-0.20251030100505-070ab1a87a76 // indirect
+	github.com/nats-io/jwt/v2 v2.8.0 // indirect
+	github.com/nats-io/nkeys v0.4.12 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/pganalyze/pg_query_go/v6 v6.1.0 // indirect
 	github.com/pingcap/errors v0.11.5-0.20240311024730-e056997136bb // indirect
@@ -71,6 +80,7 @@ require (
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.40.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
