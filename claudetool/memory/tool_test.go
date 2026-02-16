@@ -18,22 +18,27 @@ func TestMemorySearchTool(t *testing.T) {
 	}
 	defer db.Close()
 
-	// Seed the DB with chunks.
-	chunks := []struct {
-		id, srcType, srcID, srcName string
-		index                       int
-		text                        string
-	}{
-		{"conv-1-0", "conversation", "conv-1", "Auth Discussion", 0,
-			"We decided to use JWT authentication for the API gateway"},
-		{"conv-1-1", "conversation", "conv-1", "Auth Discussion", 1,
-			"The authentication middleware validates tokens and extracts user claims"},
-		{"file-1-0", "file", "file-1", "auth.go", 0,
-			"Package auth provides authentication helpers including token verification"},
+	// Create a topic with summary.
+	db.UpsertTopic(memdb.Topic{
+		TopicID: "topic_auth", Name: "authentication",
+		Summary: "JWT authentication for the API gateway with token validation.",
+	})
+
+	// Seed the DB with cells.
+	cells := []memdb.Cell{
+		{CellID: "c1", TopicID: "topic_auth", SourceType: "conversation", SourceID: "conv-1",
+			SourceName: "Auth Discussion", CellType: "decision", Salience: 0.9,
+			Content: "We decided to use JWT authentication for the API gateway"},
+		{CellID: "c2", TopicID: "topic_auth", SourceType: "conversation", SourceID: "conv-1",
+			SourceName: "Auth Discussion", CellType: "code_ref", Salience: 0.7,
+			Content: "The authentication middleware validates tokens and extracts user claims"},
+		{CellID: "c3", TopicID: "topic_auth", SourceType: "file", SourceID: "file-1",
+			SourceName: "auth.go", CellType: "code_ref", Salience: 0.6,
+			Content: "Package auth provides authentication helpers including token verification"},
 	}
-	for _, c := range chunks {
-		if err := db.InsertChunk(c.id, c.srcType, c.srcID, c.srcName, c.index, c.text, nil); err != nil {
-			t.Fatalf("InsertChunk(%s): %v", c.id, err)
+	for _, c := range cells {
+		if err := db.InsertCell(c); err != nil {
+			t.Fatalf("InsertCell(%s): %v", c.CellID, err)
 		}
 	}
 
@@ -56,6 +61,10 @@ func TestMemorySearchTool(t *testing.T) {
 	}
 	if !strings.Contains(text, "relevant memories") {
 		t.Errorf("expected results header, got: %s", text)
+	}
+	// Should contain a topic summary.
+	if !strings.Contains(text, "Topic Summary") {
+		t.Errorf("expected 'Topic Summary' in output, got: %s", text)
 	}
 	t.Logf("result: %s", text)
 }
@@ -104,5 +113,37 @@ func TestMemorySearchToolEmptyResults(t *testing.T) {
 	text := result.LLMContent[0].Text
 	if !strings.Contains(text, "No relevant memories found") {
 		t.Errorf("expected no-results message, got: %s", text)
+	}
+}
+
+func TestMemorySearchToolSummaryOnly(t *testing.T) {
+	dir := t.TempDir()
+	db, err := memdb.Open(filepath.Join(dir, "memory.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	db.UpsertTopic(memdb.Topic{
+		TopicID: "topic_auth", Name: "authentication",
+		Summary: "JWT authentication for the API gateway.",
+	})
+	db.InsertCell(memdb.Cell{
+		CellID: "c1", TopicID: "topic_auth", SourceType: "conversation",
+		SourceID: "conv-1", CellType: "decision", Salience: 0.9,
+		Content: "We decided to use JWT",
+	})
+
+	tool := NewMemorySearchTool(db, nil)
+	input, _ := json.Marshal(searchInput{Query: "authentication", DetailLevel: "summary"})
+	result := tool.Run(context.Background(), input)
+
+	text := result.LLMContent[0].Text
+	if !strings.Contains(text, "Topic Summary") {
+		t.Errorf("expected topic summary, got: %s", text)
+	}
+	// Should NOT contain individual cell results.
+	if strings.Contains(text, "[decision]") {
+		t.Errorf("summary mode should not include individual cells, got: %s", text)
 	}
 }

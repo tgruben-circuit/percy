@@ -26,6 +26,11 @@ const (
       "enum": ["conversation", "file", "all"],
       "description": "Filter results by source type. Defaults to all."
     },
+    "detail_level": {
+      "type": "string",
+      "enum": ["summary", "full"],
+      "description": "summary: topic summaries only. full: summaries + individual cells. Defaults to full."
+    },
     "limit": {
       "type": "integer",
       "description": "Maximum number of results to return (default 10, max 25)"
@@ -35,9 +40,10 @@ const (
 )
 
 type searchInput struct {
-	Query      string `json:"query"`
-	SourceType string `json:"source_type"`
-	Limit      int    `json:"limit"`
+	Query       string `json:"query"`
+	SourceType  string `json:"source_type"`
+	DetailLevel string `json:"detail_level"`
+	Limit       int    `json:"limit"`
 }
 
 // MemorySearchTool provides semantic search over past conversations and files.
@@ -72,7 +78,6 @@ func (t *MemorySearchTool) Run(ctx context.Context, input json.RawMessage) llm.T
 		return llm.ToolOut{LLMContent: llm.TextContent("No memory index found. Memory search is not available in this session.")}
 	}
 
-	// Clamp limit.
 	if in.Limit <= 0 {
 		in.Limit = 10
 	}
@@ -80,13 +85,11 @@ func (t *MemorySearchTool) Run(ctx context.Context, input json.RawMessage) llm.T
 		in.Limit = 25
 	}
 
-	// Map "all" to empty string (no filter).
 	sourceType := in.SourceType
 	if sourceType == "all" {
 		sourceType = ""
 	}
 
-	// Embed the query for vector search if an embedder is available.
 	var queryVec []float32
 	if t.embedder != nil {
 		vecs, err := t.embedder.Embed(ctx, []string{in.Query})
@@ -95,9 +98,20 @@ func (t *MemorySearchTool) Run(ctx context.Context, input json.RawMessage) llm.T
 		}
 	}
 
-	results, err := t.db.HybridSearch(in.Query, queryVec, sourceType, in.Limit)
+	results, err := t.db.TwoTierSearch(in.Query, queryVec, sourceType, in.Limit)
 	if err != nil {
 		return llm.ErrorfToolOut("memory search failed: %w", err)
+	}
+
+	// Filter by detail level.
+	if in.DetailLevel == "summary" {
+		var summaryOnly []memdb.MemoryResult
+		for _, r := range results {
+			if r.ResultType == "topic_summary" {
+				summaryOnly = append(summaryOnly, r)
+			}
+		}
+		results = summaryOnly
 	}
 
 	if len(results) == 0 {
@@ -105,17 +119,22 @@ func (t *MemorySearchTool) Run(ctx context.Context, input json.RawMessage) llm.T
 	}
 
 	return llm.ToolOut{
-		LLMContent: llm.TextContent(formatResults(results)),
+		LLMContent: llm.TextContent(formatMemoryResults(results)),
 		Display:    results,
 	}
 }
 
-// formatResults formats search results as human-readable text for the LLM.
-func formatResults(results []memdb.SearchResult) string {
+// formatMemoryResults formats two-tier search results as human-readable text for the LLM.
+func formatMemoryResults(results []memdb.MemoryResult) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Found %d relevant memories:\n\n", len(results))
 	for i, r := range results {
-		fmt.Fprintf(&b, "--- Result %d [%s: %s] (score: %.2f) ---\n%s\n\n", i+1, r.SourceType, r.SourceName, r.Score, r.Text)
+		switch r.ResultType {
+		case "topic_summary":
+			fmt.Fprintf(&b, "--- Topic Summary: %q (updated %s) ---\n%s\n\n", r.TopicName, r.UpdatedAt, r.Content)
+		case "cell":
+			fmt.Fprintf(&b, "--- Result %d [%s] (score: %.2f, salience: %.1f) ---\n%s\n\n", i+1, r.CellType, r.Score, r.Salience, r.Content)
+		}
 	}
 	return b.String()
 }
