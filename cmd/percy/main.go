@@ -199,6 +199,7 @@ func runServe(global GlobalConfig, args []string) {
 			os.Exit(1)
 		}
 		defer node.Stop()
+		svr.SetClusterNode(node)
 		logger.Info("Cluster node started", "agent_id", cfg.AgentID, "nats", *clusterAddr)
 	}
 

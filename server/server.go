@@ -20,6 +20,7 @@ import (
 	"tailscale.com/util/singleflight"
 
 	"github.com/tgruben-circuit/percy/claudetool"
+	"github.com/tgruben-circuit/percy/cluster"
 	"github.com/tgruben-circuit/percy/db"
 	"github.com/tgruben-circuit/percy/db/generated"
 	"github.com/tgruben-circuit/percy/llm"
@@ -232,6 +233,7 @@ type Server struct {
 	conversationGroup   singleflight.Group[string, *ConversationManager]
 	versionChecker      *VersionChecker
 	notifDispatcher     *notifications.Dispatcher
+	clusterNode         *cluster.Node
 	shutdownCh          chan struct{} // Signals background routines to stop
 	indexQueue          chan string   // Buffered queue for conversation IDs to index
 }
@@ -274,6 +276,12 @@ func (s *Server) SetMemoryDB(mdb *memory.DB) {
 // If nil, vector search is disabled (FTS-only).
 func (s *Server) SetEmbedder(e memory.Embedder) {
 	s.embedder = e
+}
+
+// SetClusterNode sets the cluster node for multi-agent coordination.
+// If nil, cluster features are disabled.
+func (s *Server) SetClusterNode(node *cluster.Node) {
+	s.clusterNode = node
 }
 
 // EnqueueIndex enqueues a conversation ID for memory indexing.
@@ -421,6 +429,9 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/notification-channels/", http.HandlerFunc(s.handleNotificationChannel))
 	mux.Handle("/api/notification-channel-types", http.HandlerFunc(s.handleNotificationChannelTypes))
 
+	// Cluster API
+	mux.Handle("GET /api/cluster/status", http.HandlerFunc(s.handleClusterStatus))
+
 	// Models API (dynamic list refresh)
 	mux.Handle("/api/models", http.HandlerFunc(s.handleModels))
 
@@ -446,6 +457,36 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	// Serve embedded UI assets
 	mux.Handle("/", s.staticHandler(ui.Assets()))
+}
+
+func (s *Server) handleClusterStatus(w http.ResponseWriter, r *http.Request) {
+	if s.clusterNode == nil {
+		http.Error(w, "not in cluster mode", http.StatusNotFound)
+		return
+	}
+
+	ctx := r.Context()
+	agents, err := s.clusterNode.Registry.List(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	submitted, _ := s.clusterNode.Tasks.ListByStatus(ctx, cluster.TaskStatusSubmitted)
+	working, _ := s.clusterNode.Tasks.ListByStatus(ctx, cluster.TaskStatusWorking)
+	completed, _ := s.clusterNode.Tasks.ListByStatus(ctx, cluster.TaskStatusCompleted)
+
+	status := map[string]any{
+		"agents": agents,
+		"tasks": map[string]any{
+			"submitted": len(submitted),
+			"working":   len(working),
+			"completed": len(completed),
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
 }
 
 // handleValidateCwd validates that a path exists and is a directory
