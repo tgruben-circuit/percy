@@ -7,6 +7,7 @@ import (
 
 	"github.com/tgruben-circuit/percy/claudetool/browse"
 	"github.com/tgruben-circuit/percy/claudetool/lsp"
+	"github.com/tgruben-circuit/percy/cluster"
 	"github.com/tgruben-circuit/percy/llm"
 	"github.com/tgruben-circuit/percy/skills"
 )
@@ -76,6 +77,9 @@ type ToolSetConfig struct {
 	MemorySearchTool *llm.Tool
 	// AvailableSkills is the list of discovered skills. If non-empty, the skill_load tool is registered.
 	AvailableSkills []skills.Skill
+	// ClusterNode is the cluster node for multi-agent coordination.
+	// Typed as any to avoid import cycles; must be *cluster.Node.
+	ClusterNode any
 }
 
 // ToolSet holds a set of tools for a single conversation.
@@ -174,6 +178,12 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 
 	if cfg.MemorySearchTool != nil {
 		tools = append(tools, cfg.MemorySearchTool)
+	}
+
+	if cfg.ClusterNode != nil {
+		if node, ok := cfg.ClusterNode.(*cluster.Node); ok {
+			tools = append(tools, NewDispatchTool(node).Tool())
+		}
 	}
 
 	var cleanups []func()

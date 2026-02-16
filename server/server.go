@@ -282,6 +282,7 @@ func (s *Server) SetEmbedder(e memory.Embedder) {
 // If nil, cluster features are disabled.
 func (s *Server) SetClusterNode(node *cluster.Node) {
 	s.clusterNode = node
+	s.toolSetConfig.ClusterNode = node
 }
 
 // EnqueueIndex enqueues a conversation ID for memory indexing.
