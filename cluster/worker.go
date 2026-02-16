@@ -105,7 +105,7 @@ func (w *Worker) execute(ctx context.Context, task Task) {
 
 	result := w.handler(ctx, task)
 
-	if result.Branch != "" || result.Summary != "" {
+	if result.Branch != "" {
 		if err := w.node.Tasks.Complete(ctx, task.ID, result); err != nil {
 			slog.Error("worker: complete task", "task", task.ID, "error", err)
 		}

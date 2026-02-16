@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -79,7 +80,7 @@ func (s *Server) executeClusterTask(ctx context.Context, task cluster.Task) clus
 
 	userMsg := llm.Message{
 		Role:    llm.MessageRoleUser,
-		Content: []llm.Content{{Type: llm.ContentTypeText, Text: task.Description}},
+		Content: []llm.Content{{Type: llm.ContentTypeText, Text: "Execute the task described in the system prompt."}},
 	}
 	if _, err := manager.AcceptUserMessage(ctx, llmService, modelID, userMsg); err != nil {
 		return cluster.TaskResult{Summary: fmt.Sprintf("accept message failed: %v", err)}
@@ -114,13 +115,18 @@ func (s *Server) createWorktree(ctx context.Context, task cluster.Task, branchNa
 
 	worktreeDir := filepath.Join("/tmp", "percy-worktree-"+task.ID)
 
+	// Use the server's working directory as the git repo root
+	repoDir := s.toolSetConfig.WorkingDir
+
 	// Fetch latest (best-effort)
 	fetch := exec.CommandContext(ctx, "git", "fetch", "origin")
+	fetch.Dir = repoDir
 	fetch.Run()
 
 	// Create worktree with new branch
 	cmd := exec.CommandContext(ctx, "git", "worktree", "add", worktreeDir,
 		"-b", branchName, "origin/"+baseBranch)
+	cmd.Dir = repoDir
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("git worktree add: %s: %w", string(out), err)
 	}
@@ -129,7 +135,9 @@ func (s *Server) createWorktree(ctx context.Context, task cluster.Task, branchNa
 }
 
 func (s *Server) cleanupWorktree(dir string) {
-	exec.Command("git", "worktree", "remove", "--force", dir).Run()
+	if err := exec.Command("git", "worktree", "remove", "--force", dir).Run(); err != nil {
+		os.RemoveAll(dir)
+	}
 }
 
 func (s *Server) getLastAssistantText(ctx context.Context, conversationID string) string {
