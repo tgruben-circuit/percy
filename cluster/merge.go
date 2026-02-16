@@ -167,7 +167,7 @@ func (mw *MergeWorktree) Merge(ctx context.Context, branchName, taskTitle string
 
 // DeleteBranch deletes the given branch from the repo (not the worktree).
 func (mw *MergeWorktree) DeleteBranch(ctx context.Context, branchName string) error {
-	cmd := exec.CommandContext(ctx, "git", "-C", mw.repoDir, "branch", "-d", branchName)
+	cmd := exec.CommandContext(ctx, "git", "-C", mw.repoDir, "branch", "-D", branchName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("delete branch %q: %s: %w", branchName, out, err)
