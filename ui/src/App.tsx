@@ -7,6 +7,7 @@ import ConversationDrawer from "./components/ConversationDrawer";
 import CommandPalette from "./components/CommandPalette";
 import ModelsModal from "./components/ModelsModal";
 import NotificationsModal from "./components/NotificationsModal";
+import ClusterDashboard from "./components/ClusterDashboard";
 import { Conversation, ConversationWithState, ConversationListUpdate } from "./types";
 import { api } from "./services/api";
 
@@ -508,6 +509,9 @@ function App() {
             setEphemeralTerminals={setEphemeralTerminals}
           />
         </div>
+
+        {/* Cluster dashboard (right panel, hidden when not in cluster mode) */}
+        <ClusterDashboard />
 
         {/* Command Palette */}
         <CommandPalette
