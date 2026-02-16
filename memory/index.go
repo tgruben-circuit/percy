@@ -4,6 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"log/slog"
+
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 // hashMessages returns a SHA-256 hex digest of concatenated role+text.
@@ -91,6 +94,99 @@ func (d *DB) IndexConversation(ctx context.Context, conversationID, slug string,
 		}
 		if err := d.InsertChunk(chunkID, "conversation", conversationID, slug, c.Index, c.Text, embBlob); err != nil {
 			return err
+		}
+	}
+
+	return d.SetIndexState("conversation", conversationID, hash)
+}
+
+// IndexConversationV2 indexes a conversation using LLM-powered extraction.
+// Falls back to chunk-based indexing if svc is nil.
+func (d *DB) IndexConversationV2(ctx context.Context, conversationID, slug string, messages []MessageText, embedder Embedder, svc llm.Service) error {
+	hash := hashMessages(messages)
+
+	indexed, err := d.IsIndexed("conversation", conversationID, hash)
+	if err != nil {
+		return err
+	}
+	if indexed {
+		return nil
+	}
+
+	// Extract cells using LLM or fallback.
+	var extracted []ExtractedCell
+	if svc != nil {
+		extracted, err = ExtractCells(ctx, svc, messages)
+		if err != nil || len(extracted) == 0 {
+			// Fall back to chunk-based extraction.
+			extracted = FallbackChunkToCells(conversationID, slug, messages)
+		}
+	} else {
+		extracted = FallbackChunkToCells(conversationID, slug, messages)
+	}
+
+	// If no cells extracted at all, just record index state and return.
+	if len(extracted) == 0 {
+		return d.SetIndexState("conversation", conversationID, hash)
+	}
+
+	// Delete old cells for this conversation.
+	if err := d.DeleteCellsBySource("conversation", conversationID); err != nil {
+		return err
+	}
+
+	// Assign cells to topics.
+	assigned, err := AssignCellsToTopics(ctx, d, extracted, embedder)
+	if err != nil {
+		return fmt.Errorf("memory: index v2 assign topics: %w", err)
+	}
+
+	// Insert each cell.
+	affectedTopics := make(map[string]bool)
+	for i, ac := range assigned {
+		cellID := fmt.Sprintf("conv_%s_%d", conversationID, i)
+
+		var embBlob []byte
+		if embedder != nil {
+			vecs, embedErr := embedder.Embed(ctx, []string{ac.Content})
+			if embedErr == nil && len(vecs) > 0 && vecs[0] != nil {
+				embBlob = SerializeEmbedding(vecs[0])
+			}
+		}
+
+		cell := Cell{
+			CellID:     cellID,
+			TopicID:    ac.TopicID,
+			SourceType: "conversation",
+			SourceID:   conversationID,
+			SourceName: slug,
+			CellType:   ac.CellType,
+			Salience:   ac.Salience,
+			Content:    ac.Content,
+			Embedding:  embBlob,
+		}
+		if err := d.InsertCell(cell); err != nil {
+			return err
+		}
+
+		if ac.TopicID != "" {
+			affectedTopics[ac.TopicID] = true
+		}
+	}
+
+	// Check consolidation for each affected topic (best-effort).
+	if svc != nil {
+		for topicID := range affectedTopics {
+			needs, err := NeedsConsolidation(d, topicID)
+			if err != nil {
+				slog.Warn("memory: consolidation check failed", "topic_id", topicID, "error", err)
+				continue
+			}
+			if needs {
+				if err := ConsolidateTopic(ctx, d, svc, embedder, topicID); err != nil {
+					slog.Warn("memory: consolidation failed", "topic_id", topicID, "error", err)
+				}
+			}
 		}
 	}
 
