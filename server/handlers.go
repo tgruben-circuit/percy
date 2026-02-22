@@ -442,7 +442,7 @@ func (s *Server) serveIndexWithInit(w http.ResponseWriter, r *http.Request, fs h
 }
 
 // handleConfig returns server configuration
-// handleConversations handles GET /conversations
+// handleConversations handles GET /api/conversations
 func (s *Server) handleConversations(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -543,7 +543,7 @@ func (s *Server) conversationMux() *http.ServeMux {
 	return mux
 }
 
-// handleGetConversation handles GET /conversation/<id>
+// handleGetConversation handles GET /api/conversation/<id>
 func (s *Server) handleGetConversation(w http.ResponseWriter, r *http.Request, conversationID string) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -591,7 +591,7 @@ type ChatRequest struct {
 	Cwd     string `json:"cwd,omitempty"`
 }
 
-// handleChatConversation handles POST /conversation/<id>/chat
+// handleChatConversation handles POST /api/conversation/<id>/chat
 func (s *Server) handleChatConversation(w http.ResponseWriter, r *http.Request, conversationID string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -967,7 +967,7 @@ func buildConversationSummary(slug string, messages []generated.Message) string 
 	return sb.String()
 }
 
-// handleCancelConversation handles POST /conversation/<id>/cancel
+// handleCancelConversation handles POST /api/conversation/<id>/cancel
 func (s *Server) handleCancelConversation(w http.ResponseWriter, r *http.Request, conversationID string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -1000,7 +1000,7 @@ func (s *Server) handleCancelConversation(w http.ResponseWriter, r *http.Request
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "cancelled"}) //nolint:errchkjson // best-effort HTTP response
 }
 
-// handleStreamConversation handles GET /conversation/<id>/stream
+// handleStreamConversation handles GET /api/conversation/<id>/stream
 // Query parameters:
 //   - last_sequence_id: Resume from this sequence ID (skip messages up to and including this ID)
 func (s *Server) handleStreamConversation(w http.ResponseWriter, r *http.Request, conversationID string) {
@@ -1271,7 +1271,7 @@ func (s *Server) handleArchivedConversations(w http.ResponseWriter, r *http.Requ
 	_ = json.NewEncoder(w).Encode(conversations) //nolint:errchkjson // best-effort HTTP response
 }
 
-// handleArchiveConversation handles POST /conversation/<id>/archive
+// handleArchiveConversation handles POST /api/conversation/<id>/archive
 func (s *Server) handleArchiveConversation(w http.ResponseWriter, r *http.Request, conversationID string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -1296,7 +1296,7 @@ func (s *Server) handleArchiveConversation(w http.ResponseWriter, r *http.Reques
 	_ = json.NewEncoder(w).Encode(conversation) //nolint:errchkjson // best-effort HTTP response
 }
 
-// handleUnarchiveConversation handles POST /conversation/<id>/unarchive
+// handleUnarchiveConversation handles POST /api/conversation/<id>/unarchive
 func (s *Server) handleUnarchiveConversation(w http.ResponseWriter, r *http.Request, conversationID string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -1321,7 +1321,7 @@ func (s *Server) handleUnarchiveConversation(w http.ResponseWriter, r *http.Requ
 	_ = json.NewEncoder(w).Encode(conversation) //nolint:errchkjson // best-effort HTTP response
 }
 
-// handleDeleteConversation handles POST /conversation/<id>/delete
+// handleDeleteConversation handles POST /api/conversation/<id>/delete
 func (s *Server) handleDeleteConversation(w http.ResponseWriter, r *http.Request, conversationID string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -1379,7 +1379,7 @@ type RenameRequest struct {
 	Slug string `json:"slug"`
 }
 
-// handleRenameConversation handles POST /conversation/<id>/rename
+// handleRenameConversation handles POST /api/conversation/<id>/rename
 func (s *Server) handleRenameConversation(w http.ResponseWriter, r *http.Request, conversationID string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

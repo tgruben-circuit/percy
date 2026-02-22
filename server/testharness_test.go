@@ -240,7 +240,7 @@ func (h *TestHarness) GetContextWindowSize() uint64 {
 		h.t.Fatal("GetContextWindowSize: no conversation started")
 	}
 
-	// Use handleGetConversation (GET /conversation/<id>) instead of stream endpoint
+	// Use handleGetConversation (GET /api/conversation/<id>) instead of stream endpoint
 	req := httptest.NewRequest("GET", "/api/conversation/"+h.convID, nil)
 	w := httptest.NewRecorder()
 
