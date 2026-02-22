@@ -2,21 +2,21 @@ Percy is an agentic loop with tool use. See
 https://sketch.dev/blog/agent-loop for an example of the idea.
 
 When Percy is started with "go run ./cmd/percy" it starts a web server and
-opens a sqlite database, and users interact with the ui built in ui/. (The
-server itself is implemented in server/; cmd/percy is a very thing shim.)
+opens a sqlite database, and users interact with the UI built in ui/. (The
+server itself is implemented in server/; cmd/percy is a very thin shim.)
 
 ## Components
 
 ### ui/
 
-TODO: A mobile-first UI.
+Mobile-first React UI.
 Infrastructure:
   * pnpm
-  * Typescript
+  * TypeScript
   * esbuild
-  * ESLint and eslint-typescript
-  * VueJS
-  * Jest
+  * ESLint
+  * React
+  * Playwright (e2e)
 
 ### db/
 
@@ -32,31 +32,31 @@ message(conversation_id, message_id, type (agent/user/tool), llm_data (json), us
 
 The database is sqlite. We use sqlc to define queries and schema.
 
-TODOX: Subagent/tool conversations are done with user_initiated=false.
+Subagent and tool conversations use user_initiated=false.
 
 ### server/
 
 The server serves the agent HTTP API and maintains active
 conversations. The HTTP API is:
 
-/conversations?limit=5000&offset=0
-/conversations?q=search_term
+/api/conversations?limit=5000&offset=0
+/api/conversations?q=search_term
 
   Returns conversations, either matching a query, or matching
   the paging requirements.
 
-/conversation/<id>
+/api/conversation/<id>
 
   Returns all the messages within a conversation.
 
-/conversation/<id>/stream
+/api/conversation/<id>/stream
 
   Returns all the messages within a conversation and
   uses SSE to wait for updates.
 
-/conversation/<id>/chat (POST)
+/api/conversation/<id>/chat (POST)
 
-  Injects a user message into the conversation
+  Injects a user message into the conversation.
 
 
 When a conversation is active (because it's had a message sent to it, or there
