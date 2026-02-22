@@ -10,7 +10,7 @@ const { tmpdir } = require('os');
 const PORT = 9001;
 
 // Kill any stale process listening on our port. On self-hosted CI runners,
-// a previous run may have left an orphaned shelley server (go run spawns a
+// a previous run may have left an orphaned percy server (go run spawns a
 // subprocess that can escape the runner's process-tree cleanup).
 function killStaleProcessOnPort(port) {
   try {
@@ -56,15 +56,15 @@ function waitForPortFree(port) {
 killStaleProcessOnPort(PORT);
 
 // Create a temporary directory for this test run
-const tempDir = mkdtempSync(path.join(tmpdir(), 'shelley-e2e-'));
+const tempDir = mkdtempSync(path.join(tmpdir(), 'percy-e2e-'));
 const testDb = path.join(tempDir, 'test.db');
 
 console.log(`Using temporary database: ${testDb}`);
 console.log(`Starting test server on port ${PORT}`);
 
-// Start Shelley server with test configuration
+// Start Percy server with test configuration
 const serverProcess = spawn('go', [
-  'run', './cmd/shelley',
+  'run', './cmd/percy',
   '--model', 'predictable',
   '--predictable-only',
   '--db', testDb,

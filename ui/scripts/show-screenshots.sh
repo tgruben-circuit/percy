@@ -2,7 +2,7 @@
 
 # Script to help inspect Playwright test screenshots
 
-echo "📸 Shelley E2E Test Screenshots"
+echo "📸 Percy E2E Test Screenshots"
 echo "================================="
 
 cd "$(dirname "$0")/.."

@@ -2,7 +2,7 @@
 
 # Script to verify that .gitignore is working correctly
 
-echo "🧹 Verifying .gitignore configuration for Shelley"
+echo "🧹 Verifying .gitignore configuration for Percy"
 echo "================================================"
 
 cd "$(dirname "$0")/../.."
