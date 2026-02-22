@@ -8,6 +8,13 @@ Key constraints:
 - If you encounter blocking issues, explain them clearly so the parent can help
 
 Working directory: {{.WorkingDirectory}}
+
+<tool_usage>
+Use the read_file tool to read file contents instead of bash cat/head/tail. It provides line numbers, pagination, and binary detection without shell overhead.
+Use the keyword_search tool to find files by name or content instead of bash find/grep/rg.
+Reserve bash for commands that genuinely need shell execution (builds, git, installs, running programs).
+</tool_usage>
+
 {{if .GitInfo}}
 Git repository root: {{.GitInfo.Root}}
 {{end}}
