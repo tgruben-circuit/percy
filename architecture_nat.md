@@ -1,5 +1,7 @@
 # Percy Architecture: Current State & Road Ahead
 
+Note: ARCHITECTURE.md is a short overview; this document is the canonical source.
+
 **Date:** 2026-02-17
 **Repo:** `github.com/tgruben-circuit/percy` (codename: Shelley)
 
@@ -417,7 +419,7 @@ The cluster system is the most recently built and has the most open work:
 
 ### Tools
 
-18. **No file read tool** — The agent uses `keyword_search` and `bash cat` to read files. A dedicated read tool would be cleaner and could enforce size limits, support pagination, and handle binary detection.
+18. ~~ **No file read tool** — The agent uses `keyword_search` and `bash cat` to read files. A dedicated read tool would be cleaner and could enforce size limits, support pagination, and handle binary detection. ~~
 
 19. **Browser tool reliability** — Chromedp-based browsing can be flaky. Screenshot timing, page load detection, and error recovery could all be more robust.
 

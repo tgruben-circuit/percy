@@ -1,4 +1,7 @@
-Percy is an agentic loop with tool use. See
+Percy is an agentic loop with tool use. For the current, detailed
+architecture and roadmap, see architecture_nat.md.
+
+See
 https://sketch.dev/blog/agent-loop for an example of the idea.
 
 When Percy is started with "go run ./cmd/percy" it starts a web server and
