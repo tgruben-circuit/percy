@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Manual test script for Shelley server
+# Manual test script for Percy server
 # Usage: ./test_manual.sh [port]
 
 set -e
@@ -8,7 +8,7 @@ set -e
 PORT=${1:-8080}
 BASE_URL="http://localhost:$PORT"
 
-echo "=== Shelley Manual Test Script ==="
+echo "=== Percy Manual Test Script ==="
 echo "Testing server at $BASE_URL"
 echo
 
@@ -35,38 +35,34 @@ make_request() {
 }
 
 echo "1. Testing server health by listing conversations..."
-make_request "GET" "$BASE_URL/conversations"
+make_request "GET" "$BASE_URL/api/conversations"
 
 echo "2. Creating a test conversation..."
-echo "   Note: This test assumes a conversation exists. If not, create one via the database or modify the server to auto-create."
+echo "   This creates a conversation and returns a conversation_id."
+echo "   Example:"
+echo "   curl -X POST -H 'Content-Type: application/json' -d '{\"message\": \"Hello\", \"model\": \"predictable\"}' $BASE_URL/api/conversations/new"
 echo
 
 echo "3. Testing with a sample conversation ID (replace with real ID)..."
-echo "   For a real test, first start the server, create a conversation via the database,"
-echo "   then use that conversation ID in the following requests."
-echo
-echo "   Example conversation creation (using sqlite3):"
-echo "   sqlite3 shelley.db \"INSERT INTO conversations (conversation_id, slug) VALUES ('test-123', 'manual-test');\""
-echo
 echo "   Then test chat:"
-echo "   curl -X POST -H 'Content-Type: application/json' -d '{\"message\": \"Hello, how are you?\"}' $BASE_URL/conversation/test-123/chat"
+echo "   curl -X POST -H 'Content-Type: application/json' -d '{\"message\": \"Hello, how are you?\"}' $BASE_URL/api/conversation/test-123/chat"
 echo
 echo "   And get messages:"
-echo "   curl $BASE_URL/conversation/test-123"
+echo "   curl $BASE_URL/api/conversation/test-123"
 echo
 echo "   And test streaming:"
-echo "   curl $BASE_URL/conversation/test-123/stream"
+echo "   curl $BASE_URL/api/conversation/test-123/stream"
 echo
 
 echo "4. Instructions for testing with Anthropic API:"
 echo "   1. Set ANTHROPIC_API_KEY environment variable with a valid key"
-echo "   2. Start server: cd cmd/shelley && ./shelley --port=$PORT"
+echo "   2. Start server: ./bin/percy serve --port=$PORT"
 echo "   3. Create a conversation and send messages as shown above"
 echo
 
 echo "5. Testing server responsiveness..."
 echo "   If server is running, this should return an empty conversations list:"
-make_request "GET" "$BASE_URL/conversations?limit=1"
+make_request "GET" "$BASE_URL/api/conversations?limit=1"
 
 echo "=== Manual test complete ==="
 echo "For full testing with real conversations, use the commands shown above."
