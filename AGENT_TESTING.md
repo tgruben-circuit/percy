@@ -56,8 +56,8 @@ headless start
 Test these commands manually:
 
 ```bash
-# List available models
-./bin/percy models
+# Print version info
+./bin/percy version
 ```
 
 ### E2E Tests (Automated)
@@ -216,6 +216,9 @@ headless start
 ```bash
 # List conversations
 curl http://localhost:9001/api/conversations
+
+# List available models
+curl http://localhost:9001/api/models
 
 # Get specific conversation
 curl http://localhost:9001/api/conversation/<id>
