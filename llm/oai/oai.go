@@ -257,6 +257,13 @@ var (
 		APIKeyEnv: FireworksAPIKeyEnv,
 	}
 
+	KimiK2Fireworks = Model{
+		UserName:  "kimi-k2-fireworks",
+		ModelName: "accounts/fireworks/models/kimi-k2-instruct-0905",
+		URL:       FireworksURL,
+		APIKeyEnv: FireworksAPIKeyEnv,
+	}
+
 	GPTOSS20B = Model{
 		UserName:  "gpt-oss-20b",
 		ModelName: "accounts/fireworks/models/gpt-oss-20b",
@@ -764,6 +771,8 @@ func (s *Service) TokenContextWindow() int {
 		return 128000
 	case "qwen", "qwen3-coder-cerebras", "qwen3-coder-fireworks":
 		return 256000 // 256k native context for Qwen3-Coder
+	case "accounts/fireworks/models/kimi-k2-instruct-0905":
+		return 128000
 	case "gpt-oss-20b", "gpt-oss-120b":
 		return 128000
 	case "gpt-5.1", "gpt-5.1-mini", "gpt-5.1-nano":

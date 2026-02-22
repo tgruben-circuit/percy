@@ -310,6 +310,23 @@ func All() []Model {
 			},
 		},
 		{
+			ID:              "kimi-k2-fireworks",
+			Provider:        ProviderFireworks,
+			Description:     "Kimi K2 on Fireworks",
+			RequiredEnvVars: []string{"FIREWORKS_API_KEY"},
+			GatewayEnabled:  true,
+			Factory: func(config *Config, httpc *http.Client) (llm.Service, error) {
+				if config.FireworksAPIKey == "" {
+					return nil, fmt.Errorf("kimi-k2-fireworks requires FIREWORKS_API_KEY")
+				}
+				svc := &oai.Service{Model: oai.KimiK2Fireworks, APIKey: config.FireworksAPIKey, HTTPC: httpc}
+				if url := config.getFireworksURL(); url != "" {
+					svc.ModelURL = url
+				}
+				return svc, nil
+			},
+		},
+		{
 			ID:              "gemini-3-pro",
 			Provider:        ProviderGemini,
 			Description:     "Gemini 3 Pro",
