@@ -48,12 +48,12 @@ def generate_release_json(output_dir: Path) -> None:
         "commit_time": latest_commit_time,
         "published_at": published_at,
         "download_urls": {
-            "darwin_amd64": f"https://github.com/boldsoftware/shelley/releases/download/{latest_tag}/shelley_darwin_amd64",
-            "darwin_arm64": f"https://github.com/boldsoftware/shelley/releases/download/{latest_tag}/shelley_darwin_arm64",
-            "linux_amd64": f"https://github.com/boldsoftware/shelley/releases/download/{latest_tag}/shelley_linux_amd64",
-            "linux_arm64": f"https://github.com/boldsoftware/shelley/releases/download/{latest_tag}/shelley_linux_arm64",
+            "darwin_amd64": f"https://github.com/tgruben-circuit/percy/releases/download/{latest_tag}/percy_darwin_amd64",
+            "darwin_arm64": f"https://github.com/tgruben-circuit/percy/releases/download/{latest_tag}/percy_darwin_arm64",
+            "linux_amd64": f"https://github.com/tgruben-circuit/percy/releases/download/{latest_tag}/percy_linux_amd64",
+            "linux_arm64": f"https://github.com/tgruben-circuit/percy/releases/download/{latest_tag}/percy_linux_arm64",
         },
-        "checksums_url": f"https://github.com/boldsoftware/shelley/releases/download/{latest_tag}/checksums.txt",
+        "checksums_url": f"https://github.com/tgruben-circuit/percy/releases/download/{latest_tag}/checksums.txt",
     }
 
     output_path = output_dir / "release.json"
@@ -85,9 +85,9 @@ def generate_index_html(output_dir: Path) -> None:
     """Generate index.html."""
     html = """<!DOCTYPE html>
 <html>
-<head><title>Shelley</title></head>
+<head><title>Percy</title></head>
 <body>
-<p><a href="https://github.com/boldsoftware/shelley">github.com/boldsoftware/shelley</a></p>
+<p><a href="https://github.com/tgruben-circuit/percy">github.com/tgruben-circuit/percy</a></p>
 <ul>
 <li><a href="release.json">release.json</a></li>
 <li><a href="commits.json">commits.json</a></li>
