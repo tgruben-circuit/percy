@@ -1,5 +1,7 @@
 # Topic-Consolidated Memory System Implementation Plan
 
+Note: Historical planning document (Feb 2026). References may be outdated; see `architecture_nat.md` and `README.md` for current state.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Replace flat chunk-based memory with LLM-extracted structured cells organized into topics with incremental consolidation, solving stale context in memory search.

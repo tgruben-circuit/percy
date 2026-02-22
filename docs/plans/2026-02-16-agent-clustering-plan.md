@@ -1,5 +1,7 @@
 # Agent Clustering Implementation Plan
 
+Note: Historical planning document (Feb 2026). References may be outdated; see `architecture_nat.md` and `README.md` for current state.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Add NATS-based multi-agent coordination to Percy so multiple instances can collaborate on tasks across machines.

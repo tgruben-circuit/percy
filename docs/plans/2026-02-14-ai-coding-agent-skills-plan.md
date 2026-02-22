@@ -1,5 +1,7 @@
 # Bundled AI Coding Agent Skills — Implementation Plan
 
+Note: Historical planning document (Feb 2026). References may be outdated; see `architecture_nat.md` and `README.md` for current state.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Embed 3 AI coding agent skills (Claude Code, OpenCode, Gemini CLI) in the Shelley binary so they're always available to the agent.

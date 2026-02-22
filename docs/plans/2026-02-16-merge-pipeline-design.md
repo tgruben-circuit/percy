@@ -1,5 +1,7 @@
 # Merge Pipeline Design: LLM-Assisted Conflict Resolution
 
+Note: Historical planning document (Feb 2026). References may be outdated; see `architecture_nat.md` and `README.md` for current state.
+
 **Date**: 2026-02-16
 **Status**: Approved
 

@@ -1,5 +1,7 @@
 # Topic-Consolidated Memory System
 
+Note: Historical planning document (Feb 2026). References may be outdated; see `architecture_nat.md` and `README.md` for current state.
+
 **Date:** 2026-02-15
 **Status:** Approved
 **Problem:** Memory search returns stale context — old conversation chunks persist with equal weight to current knowledge, surfacing outdated decisions and abandoned approaches.

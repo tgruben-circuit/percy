@@ -1,5 +1,7 @@
 # Merge Pipeline Implementation Plan
 
+Note: Historical planning document (Feb 2026). References may be outdated; see `architecture_nat.md` and `README.md` for current state.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Add a merge pipeline that integrates worker branches into the orchestrator's working branch with LLM-assisted conflict resolution, plus wire remaining loose ends (monitor startup, system prompt).
