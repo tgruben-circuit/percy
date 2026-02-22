@@ -74,7 +74,7 @@ make
 
 ## Architecture
 
-The technical stack is Go for the backend, SQLite for storage, and Typescript
+The technical stack is Go for the backend, SQLite for storage, and TypeScript
 and React for the UI.
 
 The data model is that Conversations have Messages, which might be from the
