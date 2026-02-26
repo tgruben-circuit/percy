@@ -461,33 +461,38 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (s *Server) handleClusterStatus(w http.ResponseWriter, r *http.Request) {
+	var resp map[string]any
+
 	if s.clusterNode == nil {
-		http.Error(w, "not in cluster mode", http.StatusNotFound)
-		return
-	}
+		resp = map[string]any{
+			"agents":       []any{},
+			"tasks":        []any{},
+			"plan_summary": map[string]int{"total": 0},
+		}
+	} else {
+		ctx := r.Context()
+		agents, _ := s.clusterNode.Registry.List(ctx)
 
-	ctx := r.Context()
-	agents, _ := s.clusterNode.Registry.List(ctx)
+		var allTasks []cluster.Task
+		for _, st := range []cluster.TaskStatus{
+			cluster.TaskStatusSubmitted, cluster.TaskStatusAssigned,
+			cluster.TaskStatusWorking, cluster.TaskStatusCompleted,
+			cluster.TaskStatusFailed,
+		} {
+			tasks, _ := s.clusterNode.Tasks.ListByStatus(ctx, st)
+			allTasks = append(allTasks, tasks...)
+		}
 
-	var allTasks []cluster.Task
-	for _, st := range []cluster.TaskStatus{
-		cluster.TaskStatusSubmitted, cluster.TaskStatusAssigned,
-		cluster.TaskStatusWorking, cluster.TaskStatusCompleted,
-		cluster.TaskStatusFailed,
-	} {
-		tasks, _ := s.clusterNode.Tasks.ListByStatus(ctx, st)
-		allTasks = append(allTasks, tasks...)
-	}
+		summary := map[string]int{"total": len(allTasks)}
+		for _, t := range allTasks {
+			summary[string(t.Status)]++
+		}
 
-	summary := map[string]int{"total": len(allTasks)}
-	for _, t := range allTasks {
-		summary[string(t.Status)]++
-	}
-
-	resp := map[string]any{
-		"agents":       agents,
-		"tasks":        allTasks,
-		"plan_summary": summary,
+		resp = map[string]any{
+			"agents":       agents,
+			"tasks":        allTasks,
+			"plan_summary": summary,
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
