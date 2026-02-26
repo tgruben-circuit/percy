@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -24,6 +25,7 @@ type StatusBar struct {
 	Model             string
 	ContextWindowSize uint64
 	Width             int
+	Cwd               string
 }
 
 // View renders the status bar.
@@ -48,6 +50,27 @@ func (s StatusBar) View() string {
 		ctx = fmt.Sprintf(" | ctx: %dk", s.ContextWindowSize/1000)
 	}
 
-	content := fmt.Sprintf(" %s | %s%s", indicator, model, ctx)
+	var cwd string
+	if s.Cwd != "" {
+		cwd = " | " + shortenPath(s.Cwd, 30)
+	}
+
+	content := fmt.Sprintf(" %s | %s%s%s", indicator, model, ctx, cwd)
 	return statusBarStyle.Width(s.Width).Render(content)
+}
+
+// shortenPath truncates a long path with a "..." prefix, keeping the trailing segments.
+func shortenPath(path string, maxLen int) string {
+	if path == "" || len(path) <= maxLen {
+		return path
+	}
+	parts := strings.Split(path, "/")
+	for i := 1; i < len(parts); i++ {
+		candidate := ".../" + strings.Join(parts[i:], "/")
+		if len(candidate) <= maxLen {
+			return candidate
+		}
+	}
+	// Last resort: just the last segment with prefix
+	return ".../" + parts[len(parts)-1]
 }

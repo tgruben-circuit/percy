@@ -61,12 +61,39 @@ func TestNewConversation(t *testing.T) {
 	defer ts.Close()
 
 	c := NewClient(ts.URL)
-	id, err := c.NewConversation("hello", "")
+	id, err := c.NewConversation("hello", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if id != "new-conv-1" {
 		t.Errorf("got id %q", id)
+	}
+}
+
+func TestNewConversationWithCwd(t *testing.T) {
+	var gotReq ChatRequest
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewDecoder(r.Body).Decode(&gotReq)
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{
+			"conversation_id": "new-conv-2",
+		})
+	}))
+	defer ts.Close()
+
+	c := NewClient(ts.URL)
+	id, err := c.NewConversation("test", "claude-sonnet-4", "/home/user/project")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if id != "new-conv-2" {
+		t.Errorf("got id %q", id)
+	}
+	if gotReq.Cwd != "/home/user/project" {
+		t.Errorf("got cwd %q", gotReq.Cwd)
+	}
+	if gotReq.Model != "claude-sonnet-4" {
+		t.Errorf("got model %q", gotReq.Model)
 	}
 }
 

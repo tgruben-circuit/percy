@@ -154,6 +154,43 @@ func TestListModelNewConversation(t *testing.T) {
 	}
 }
 
+func TestNewConversationMsgCarriesDefaults(t *testing.T) {
+	m := NewListModel(&mockClient{})
+	convos := []ConversationWithState{
+		{Conversation: Conversation{
+			ConversationID: "c1",
+			Slug:           "first",
+			Cwd:            "/home/user/repos/percy",
+			Model:          "claude-sonnet-4",
+		}},
+		{Conversation: Conversation{
+			ConversationID: "c2",
+			Slug:           "second",
+			Cwd:            "/old/path",
+			Model:          "old-model",
+		}},
+	}
+	updated, _ := m.Update(conversationsMsg{conversations: convos})
+	m = updated.(ListModel)
+
+	// Press 'n' — should carry defaults from most recent conversation
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
+	if cmd == nil {
+		t.Fatal("expected command from 'n' press")
+	}
+	msg := cmd()
+	ncm, ok := msg.(NewConversationMsg)
+	if !ok {
+		t.Fatalf("expected NewConversationMsg, got %T", msg)
+	}
+	if ncm.DefaultCwd != "/home/user/repos/percy" {
+		t.Errorf("expected cwd from first conversation, got %q", ncm.DefaultCwd)
+	}
+	if ncm.DefaultModel != "claude-sonnet-4" {
+		t.Errorf("expected model from first conversation, got %q", ncm.DefaultModel)
+	}
+}
+
 // mockClient implements the subset of Client methods needed by the list view.
 type mockClient struct {
 	conversations []ConversationWithState
@@ -173,6 +210,6 @@ func (m *mockClient) ArchiveConversation(id string) error {
 	return m.archiveErr
 }
 
-func (m *mockClient) NewConversation(message, model string) (string, error) {
+func (m *mockClient) NewConversation(message, model, cwd string) (string, error) {
 	return "new-conv", nil
 }

@@ -38,8 +38,8 @@ func (c *Client) GetConversation(id string) (StreamResponse, error) {
 
 // NewConversation creates a new conversation with an initial message.
 // Returns the new conversation ID.
-func (c *Client) NewConversation(message, model string) (string, error) {
-	req := ChatRequest{Message: message, Model: model}
+func (c *Client) NewConversation(message, model, cwd string) (string, error) {
+	req := ChatRequest{Message: message, Model: model, Cwd: cwd}
 	var resp struct {
 		ConversationID string `json:"conversation_id"`
 	}

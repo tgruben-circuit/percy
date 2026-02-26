@@ -15,6 +15,8 @@ type ChatClient interface {
 	SendMessage(conversationID, message string) error
 	CancelConversation(id string) error
 	GetConversation(id string) (StreamResponse, error)
+	NewConversation(message, model, cwd string) (string, error)
+	ListModels() ([]ModelInfo, error)
 }
 
 // Messages produced by the chat view.
@@ -23,9 +25,17 @@ type (
 		response StreamResponse
 		err      error
 	}
-	sseEventMsg struct{ event StreamEvent }
-	chatActionMsg struct{ err error }
-	BackToListMsg struct{}
+	sseEventMsg       struct{ event StreamEvent }
+	chatActionMsg     struct{ err error }
+	BackToListMsg     struct{}
+	modelsMsg         struct {
+		models []ModelInfo
+		err    error
+	}
+	newConvoCreatedMsg struct {
+		conversationID string
+		err            error
+	}
 )
 
 // ChatModel is the Bubble Tea model for the chat view.
@@ -47,6 +57,10 @@ type ChatModel struct {
 	sseDone          chan struct{}
 	sseStream        *SSEStream
 	err              error
+	newConvo         bool
+	cwd              string
+	models           []ModelInfo
+	modelIndex       int
 }
 
 // NewChatModel creates a new chat view for a conversation.
@@ -72,6 +86,12 @@ func NewChatModel(client ChatClient, conversationID string) ChatModel {
 }
 
 func (m ChatModel) Init() tea.Cmd {
+	if m.newConvo {
+		return tea.Batch(
+			m.fetchModels,
+			textinput.Blink,
+		)
+	}
 	return tea.Batch(
 		m.fetchHistory,
 		textinput.Blink,
@@ -80,6 +100,34 @@ func (m ChatModel) Init() tea.Cmd {
 
 func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case modelsMsg:
+		if msg.err != nil {
+			m.err = msg.err
+			return m, nil
+		}
+		// Filter to ready models only
+		var ready []ModelInfo
+		for _, mi := range msg.models {
+			if mi.Ready {
+				ready = append(ready, mi)
+			}
+		}
+		m.models = ready
+		if len(ready) > 0 {
+			m.model = ready[0].ID
+			m.modelIndex = 0
+		}
+		return m, nil
+
+	case newConvoCreatedMsg:
+		if msg.err != nil {
+			m.err = msg.err
+			return m, nil
+		}
+		m.conversationID = msg.conversationID
+		m.newConvo = false
+		return m, m.fetchHistory
+
 	case chatHistoryMsg:
 		if msg.err != nil {
 			m.err = msg.err
@@ -89,6 +137,9 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.response.ConversationState != nil {
 			m.working = msg.response.ConversationState.Working
 			m.model = msg.response.ConversationState.Model
+		}
+		if msg.response.Conversation.Cwd != "" {
+			m.cwd = msg.response.Conversation.Cwd
 		}
 		m.contextWindowSize = msg.response.ContextWindowSize
 		m.connected = true
@@ -172,12 +223,26 @@ func (m *ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.closeSSE()
 		return *m, tea.Quit
 
+	case msg.Type == tea.KeyTab && m.newConvo && len(m.models) > 0:
+		m.modelIndex = (m.modelIndex + 1) % len(m.models)
+		m.model = m.models[m.modelIndex].ID
+		return *m, nil
+
 	case msg.Type == tea.KeyEnter:
 		text := strings.TrimSpace(m.input.Value())
 		if text == "" {
 			return *m, nil
 		}
 		m.input.Reset()
+		if m.newConvo {
+			client := m.client
+			model := m.model
+			cwd := m.cwd
+			return *m, func() tea.Msg {
+				id, err := client.NewConversation(text, model, cwd)
+				return newConvoCreatedMsg{conversationID: id, err: err}
+			}
+		}
 		client := m.client
 		id := m.conversationID
 		return *m, func() tea.Msg { return chatActionMsg{err: client.SendMessage(id, text)} }
@@ -189,8 +254,30 @@ func (m *ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m ChatModel) View() string {
-	if m.err != nil && len(m.messages) == 0 {
+	if m.err != nil && len(m.messages) == 0 && !m.newConvo {
 		return errorStyle.Render(fmt.Sprintf("Error: %v", m.err))
+	}
+
+	if m.newConvo {
+		title := agentStyle.Render("New conversation")
+		modelLine := ""
+		if m.model != "" {
+			modelLine = toolStyle.Render("Model: "+m.model) + "  [Tab to cycle]"
+		}
+		cwdLine := ""
+		if m.cwd != "" {
+			cwdLine = toolStyle.Render("Dir: " + m.cwd)
+		}
+		var parts []string
+		parts = append(parts, title)
+		if modelLine != "" {
+			parts = append(parts, modelLine)
+		}
+		if cwdLine != "" {
+			parts = append(parts, cwdLine)
+		}
+		parts = append(parts, "", m.input.View())
+		return strings.Join(parts, "\n")
 	}
 
 	title := agentStyle.Render("Percy")
@@ -204,6 +291,7 @@ func (m ChatModel) View() string {
 		Model:             m.model,
 		ContextWindowSize: m.contextWindowSize,
 		Width:             m.width,
+		Cwd:               m.cwd,
 	}
 
 	return fmt.Sprintf("%s\n%s\n%s\n%s",
@@ -264,6 +352,11 @@ func (m *ChatModel) closeSSE() {
 		m.sseStream.Close()
 		m.sseStream = nil
 	}
+}
+
+func (m ChatModel) fetchModels() tea.Msg {
+	models, err := m.client.ListModels()
+	return modelsMsg{models: models, err: err}
 }
 
 // SetServerURL stores the server base URL for SSE stream construction.

@@ -24,8 +24,11 @@ type (
 		err           error
 	}
 	SelectConversationMsg struct{ ConversationID string }
-	NewConversationMsg    struct{}
-	listActionDoneMsg     struct{ err error }
+	NewConversationMsg    struct {
+		DefaultCwd   string
+		DefaultModel string
+	}
+	listActionDoneMsg struct{ err error }
 )
 
 // ListModel is the Bubble Tea model for the conversation list view.
@@ -100,7 +103,12 @@ func (m ListModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, func() tea.Msg { return SelectConversationMsg{ConversationID: id} }
 		}
 	case key.Matches(msg, m.keys.New):
-		return m, func() tea.Msg { return NewConversationMsg{} }
+		ncm := NewConversationMsg{}
+		if len(m.conversations) > 0 {
+			ncm.DefaultCwd = m.conversations[0].Cwd
+			ncm.DefaultModel = m.conversations[0].Model
+		}
+		return m, func() tea.Msg { return ncm }
 	case key.Matches(msg, m.keys.Delete):
 		if len(m.conversations) > 0 {
 			id := m.conversations[m.cursor].ConversationID

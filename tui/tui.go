@@ -65,13 +65,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.chat.Init()
 
 	case NewConversationMsg:
-		// Switch to chat with a new input prompt
 		m.current = viewChat
 		m.chat = NewChatModel(m.client, "")
+		m.chat.newConvo = true
+		m.chat.cwd = msg.DefaultCwd
+		m.chat.model = msg.DefaultModel
+		m.chat.SetServerURL(m.serverURL)
 		m.chat.width = m.width
 		m.chat.height = m.height
-		// In new conversation mode, the first message will create the conversation
-		return m, focusInput()
+		return m, m.chat.Init()
 
 	case BackToListMsg:
 		m.current = viewList
@@ -101,12 +103,6 @@ func (m Model) View() string {
 		return m.chat.View()
 	default:
 		return m.list.View()
-	}
-}
-
-func focusInput() tea.Cmd {
-	return func() tea.Msg {
-		return nil
 	}
 }
 
