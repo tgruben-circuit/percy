@@ -2,13 +2,13 @@
 
 Percy is a fork of [Shelley](https://github.com/boldsoftware/shelley) — an awesome foundation built by [Bold Software](https://github.com/boldsoftware) — with a bunch of new features on top.
 
-Percy is a mobile-friendly, web-based, multi-conversation, multi-modal,
-multi-model, single-user coding agent. It does not come with authorization or sandboxing:
+Percy is a mobile-friendly, multi-conversation, multi-modal,
+multi-model, single-user coding agent with both a web UI and a terminal UI. It does not come with authorization or sandboxing:
 bring your own.
 
 *Mobile-friendly* because ideas can come any time.
 
-*Web-based*, because terminal-based scroll back is punishment for shoplifting in some countries.
+*Web and terminal UI*, because you should use whichever fits your workflow — browser, SSH session, or headless server.
 
 *Multi-modal* because screenshots, charts, and graphs are necessary, not to mention delightful.
 
@@ -42,6 +42,19 @@ Proactive monitoring of LLM context usage with warnings at 80% capacity, automat
 
 When a conversation gets long, Percy can distill it into an operational brief and continue in a fresh conversation. The distillation preserves files modified, decisions made, current state, and next steps — everything the agent needs to pick up where it left off.
 
+### Terminal UI (TUI)
+
+`percy tui` launches a Bubble Tea terminal client that connects to a running Percy server via HTTP/SSE. List conversations, chat with streaming responses, markdown rendering, and all the key bindings you'd expect. The TUI is a pure HTTP client — it runs as a peer to the web UI, and both can be open simultaneously against the same server.
+
+```bash
+# Start the server
+./bin/percy serve
+
+# In another terminal
+./bin/percy tui
+./bin/percy tui --server http://myhost:8080  # custom server URL
+```
+
 ### Notification Channels
 
 Get notified when the agent finishes work. Supports Discord webhooks and email, with a test endpoint to verify connectivity. Channels are configurable via the API and persist in the database.
@@ -74,8 +87,8 @@ make
 
 ## Architecture
 
-The technical stack is Go for the backend, SQLite for storage, and TypeScript
-and React for the UI.
+The technical stack is Go for the backend, SQLite for storage, TypeScript
+and React for the web UI, and Bubble Tea for the terminal UI.
 
 The data model is that Conversations have Messages, which might be from the
 user, the model, the tools, or the harness. All of that is stored in the

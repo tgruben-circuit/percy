@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is Percy?
 
-Percy is a mobile-friendly, web-based, multi-conversation, multi-modal, multi-model, single-user AI coding agent. Go backend, SQLite storage, React/TypeScript UI. Module path: `github.com/tgruben-circuit/percy`.
+Percy is a mobile-friendly, multi-conversation, multi-modal, multi-model, single-user AI coding agent. Go backend, SQLite storage, React/TypeScript web UI, Bubble Tea terminal UI. Module path: `github.com/tgruben-circuit/percy`.
 
 ## Build & Development Commands
 
@@ -27,6 +27,7 @@ make test-e2e       # Playwright E2E tests (headless)
 go test ./server              # Run tests for a single Go package
 go test ./loop                # Run loop tests
 go test ./claudetool          # Run tool tests
+go test ./tui                 # Run TUI client tests
 cd ui && pnpm run type-check  # TypeScript type checking
 cd ui && pnpm run lint        # ESLint
 cd ui && pnpm run test:e2e -- --grep "smoke"  # Run specific E2E tests
@@ -60,12 +61,13 @@ models/               Model discovery, capabilities, and selection
 db/                   SQLite via sqlc — conversations and messages tables
 subpub/               Pub/sub for SSE real-time updates
 ui/                   React/TypeScript frontend (esbuild, pnpm)
+tui/                  Bubble Tea terminal UI — pure HTTP/SSE client (no server imports)
 templates/            Project boilerplate templates (packaged as .tar.gz)
 ```
 
 ### Request flow
 
-1. User sends message via React UI → POST `/api/conversation/<id>/chat`
+1. User sends message via web UI or TUI → POST `/api/conversation/<id>/chat`
 2. Server queues message in ConversationManager (`server/convo.go`)
 3. Loop (`loop/loop.go`) calls LLM with conversation history + system prompt
 4. LLM responds with text and/or tool calls
