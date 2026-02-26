@@ -62,8 +62,8 @@ func (s *SSEStream) Close() {
 	s.closeOnce.Do(func() {
 		if s.cancel != nil {
 			s.cancel()
+			<-s.done
 		}
-		<-s.done
 	})
 }
 

@@ -229,6 +229,23 @@ func TestSSEClose(t *testing.T) {
 	stream.Close()
 }
 
+func TestSSECloseWithoutConnect(t *testing.T) {
+	events := make(chan StreamEvent, 10)
+	stream := NewSSEStream("http://localhost/test", events)
+	// Close without calling Connect must not block.
+	done := make(chan struct{})
+	go func() {
+		stream.Close()
+		close(done)
+	}()
+	select {
+	case <-done:
+		// OK
+	case <-time.After(1 * time.Second):
+		t.Fatal("Close blocked on unconnected stream")
+	}
+}
+
 func TestSSEResumeWithSequenceID(t *testing.T) {
 	var lastSeqParam string
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

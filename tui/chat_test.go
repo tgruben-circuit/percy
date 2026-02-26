@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -161,6 +162,50 @@ func TestChatModelBack(t *testing.T) {
 	msg := cmd()
 	if _, ok := msg.(BackToListMsg); !ok {
 		t.Fatalf("expected BackToListMsg, got %T", msg)
+	}
+}
+
+func TestChatModelBackAfterDisconnect(t *testing.T) {
+	m := NewChatModel(&mockChatClient{}, "conv-1")
+	m.width = 80
+	m.height = 24
+	m.serverURL = "http://localhost:9999"
+
+	// Simulate history load → SSE start
+	updated, _ := m.Update(chatHistoryMsg{
+		response: StreamResponse{
+			Conversation: Conversation{ConversationID: "conv-1"},
+			Messages:     []APIMessage{{MessageID: "msg-1", SequenceID: 1, Type: "user"}},
+		},
+	})
+	cm := updated.(ChatModel)
+
+	// Simulate SSE error (disconnect)
+	updated2, _ := cm.Update(sseEventMsg{event: StreamEvent{Err: fmt.Errorf("connection lost")}})
+	cm = updated2.(ChatModel)
+	if cm.connected {
+		t.Error("expected disconnected")
+	}
+
+	// Press ESC — must not hang.
+	done := make(chan struct{})
+	go func() {
+		_, cmd := cm.Update(tea.KeyMsg{Type: tea.KeyEscape})
+		if cmd == nil {
+			t.Error("expected command from esc press")
+		} else {
+			msg := cmd()
+			if _, ok := msg.(BackToListMsg); !ok {
+				t.Errorf("expected BackToListMsg, got %T", msg)
+			}
+		}
+		close(done)
+	}()
+	select {
+	case <-done:
+		// OK
+	case <-time.After(2 * time.Second):
+		t.Fatal("ESC handler blocked — UI would be frozen")
 	}
 }
 

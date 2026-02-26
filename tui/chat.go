@@ -32,6 +32,7 @@ type (
 type ChatModel struct {
 	client           ChatClient
 	conversationID   string
+	serverURL        string
 	messages         []APIMessage
 	messageIndex     map[string]int // messageID -> index in messages
 	working          bool
@@ -43,6 +44,7 @@ type ChatModel struct {
 	keys             KeyMap
 	connected        bool
 	sseEvents        chan StreamEvent
+	sseDone          chan struct{}
 	sseStream        *SSEStream
 	err              error
 }
@@ -65,6 +67,7 @@ func NewChatModel(client ChatClient, conversationID string) ChatModel {
 		viewport:       vp,
 		keys:           DefaultKeyMap(),
 		sseEvents:      make(chan StreamEvent, 64),
+		sseDone:        make(chan struct{}),
 	}
 }
 
@@ -90,7 +93,14 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.contextWindowSize = msg.response.ContextWindowSize
 		m.connected = true
 		m.updateViewport()
-		return m, m.startSSE
+		m.closeSSE()
+		m.sseDone = make(chan struct{})
+		m.sseStream = NewSSEStream(
+			fmt.Sprintf("%s/api/conversation/%s/stream", m.serverURL, m.conversationID),
+			m.sseEvents,
+		)
+		go m.sseStream.Connect()
+		return m, m.waitForSSE
 
 	case sseEventMsg:
 		if msg.event.Err != nil {
@@ -233,35 +243,30 @@ func (m ChatModel) fetchHistory() tea.Msg {
 	return chatHistoryMsg{response: resp, err: err}
 }
 
-func (m ChatModel) startSSE() tea.Msg {
-	m.sseStream = NewSSEStream(
-		fmt.Sprintf("%s/api/conversation/%s/stream", "", m.conversationID),
-		m.sseEvents,
-	)
-	// The SSE URL will be constructed with the full base URL in the root model.
-	// For now, connect using the events channel.
-	go m.sseStream.Connect()
-	return m.waitForSSE()
+func (m ChatModel) waitForSSE() tea.Msg {
+	select {
+	case event := <-m.sseEvents:
+		return sseEventMsg{event: event}
+	case <-m.sseDone:
+		return sseEventMsg{event: StreamEvent{Err: errStreamClosed}}
+	}
 }
 
-func (m ChatModel) waitForSSE() tea.Msg {
-	event := <-m.sseEvents
-	return sseEventMsg{event: event}
-}
+var errStreamClosed = fmt.Errorf("stream closed")
 
 func (m *ChatModel) closeSSE() {
+	select {
+	case <-m.sseDone:
+	default:
+		close(m.sseDone)
+	}
 	if m.sseStream != nil {
 		m.sseStream.Close()
 		m.sseStream = nil
 	}
 }
 
-// SetServerURL updates the SSE stream URL base. Called by the root model.
+// SetServerURL stores the server base URL for SSE stream construction.
 func (m *ChatModel) SetServerURL(url string) {
-	// Store for SSE construction
-	m.closeSSE()
-	m.sseStream = NewSSEStream(
-		fmt.Sprintf("%s/api/conversation/%s/stream", url, m.conversationID),
-		m.sseEvents,
-	)
+	m.serverURL = url
 }
