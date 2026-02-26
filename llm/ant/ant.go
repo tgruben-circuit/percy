@@ -513,7 +513,7 @@ func (s *Service) Do(ctx context.Context, ir *llm.Request) (*llm.Response, error
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-API-Key", s.APIKey)
 		req.Header.Set("Anthropic-Version", "2023-06-01")
-		req.Header.Set("anthropic-beta", "output-128k-2025-02-19")
+		req.Header.Set("anthropic-beta", "output-128k-2025-02-19,context-1m-2025-08-07")
 
 		resp, err := httpc.Do(req)
 		if err != nil {
