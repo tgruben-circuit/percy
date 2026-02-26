@@ -22,6 +22,7 @@ import (
 	"github.com/tgruben-circuit/percy/server"
 	_ "github.com/tgruben-circuit/percy/server/notifications/channels" // register channel types
 	"github.com/tgruben-circuit/percy/templates"
+	"github.com/tgruben-circuit/percy/tui"
 	"github.com/tgruben-circuit/percy/version"
 )
 
@@ -53,6 +54,7 @@ func main() {
 		flag.PrintDefaults()
 		fmt.Fprintf(flag.CommandLine.Output(), "\nCommands:\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  serve [flags]                 Start the web server\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  tui [flags]                   Start the terminal UI client\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  unpack-template <name> <dir>  Unpack a project template to a directory\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  version                       Print version information as JSON\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "\nUse '%s <command> -h' for command-specific help\n", os.Args[0])
@@ -71,6 +73,8 @@ func main() {
 	switch command {
 	case "serve":
 		runServe(global, args[1:])
+	case "tui":
+		runTUI(args[1:])
 	case "unpack-template":
 		runUnpackTemplate(args[1:])
 	case "version":
@@ -307,6 +311,20 @@ func runUnpackTemplate(args []string) {
 	}
 
 	fmt.Printf("Template %q unpacked to %s\n", templateName, destDir)
+}
+
+// runTUI starts the terminal UI client.
+func runTUI(args []string) {
+	fs := flag.NewFlagSet("tui", flag.ExitOnError)
+	server := fs.String("server", "http://localhost:9000", "Percy server URL")
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing tui flags: %v\n", err)
+		os.Exit(1)
+	}
+	if err := tui.Run(*server); err != nil {
+		fmt.Fprintf(os.Stderr, "TUI error: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 // runVersion prints version information as JSON
