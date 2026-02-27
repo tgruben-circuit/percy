@@ -104,6 +104,36 @@ func (q *Queries) DeleteMessage(ctx context.Context, messageID string) error {
 	return err
 }
 
+const deleteMessagesAfterSequence = `-- name: DeleteMessagesAfterSequence :exec
+DELETE FROM messages
+WHERE conversation_id = ? AND sequence_id > ?
+`
+
+type DeleteMessagesAfterSequenceParams struct {
+	ConversationID string `json:"conversation_id"`
+	SequenceID     int64  `json:"sequence_id"`
+}
+
+func (q *Queries) DeleteMessagesAfterSequence(ctx context.Context, arg DeleteMessagesAfterSequenceParams) error {
+	_, err := q.db.ExecContext(ctx, deleteMessagesAfterSequence, arg.ConversationID, arg.SequenceID)
+	return err
+}
+
+const deleteMessagesFromSequence = `-- name: DeleteMessagesFromSequence :exec
+DELETE FROM messages
+WHERE conversation_id = ? AND sequence_id >= ?
+`
+
+type DeleteMessagesFromSequenceParams struct {
+	ConversationID string `json:"conversation_id"`
+	SequenceID     int64  `json:"sequence_id"`
+}
+
+func (q *Queries) DeleteMessagesFromSequence(ctx context.Context, arg DeleteMessagesFromSequenceParams) error {
+	_, err := q.db.ExecContext(ctx, deleteMessagesFromSequence, arg.ConversationID, arg.SequenceID)
+	return err
+}
+
 const getLatestMessage = `-- name: GetLatestMessage :one
 SELECT message_id, conversation_id, sequence_id, type, llm_data, user_data, usage_data, created_at, display_data, excluded_from_context FROM messages
 WHERE conversation_id = ?
@@ -350,6 +380,51 @@ type ListMessagesSinceParams struct {
 
 func (q *Queries) ListMessagesSince(ctx context.Context, arg ListMessagesSinceParams) ([]Message, error) {
 	rows, err := q.db.QueryContext(ctx, listMessagesSince, arg.ConversationID, arg.SequenceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Message{}
+	for rows.Next() {
+		var i Message
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.ConversationID,
+			&i.SequenceID,
+			&i.Type,
+			&i.LlmData,
+			&i.UserData,
+			&i.UsageData,
+			&i.CreatedAt,
+			&i.DisplayData,
+			&i.ExcludedFromContext,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMessagesUpToSequence = `-- name: ListMessagesUpToSequence :many
+SELECT message_id, conversation_id, sequence_id, type, llm_data, user_data, usage_data, created_at, display_data, excluded_from_context FROM messages
+WHERE conversation_id = ? AND sequence_id <= ?
+ORDER BY sequence_id ASC
+`
+
+type ListMessagesUpToSequenceParams struct {
+	ConversationID string `json:"conversation_id"`
+	SequenceID     int64  `json:"sequence_id"`
+}
+
+func (q *Queries) ListMessagesUpToSequence(ctx context.Context, arg ListMessagesUpToSequenceParams) ([]Message, error) {
+	rows, err := q.db.QueryContext(ctx, listMessagesUpToSequence, arg.ConversationID, arg.SequenceID)
 	if err != nil {
 		return nil, err
 	}

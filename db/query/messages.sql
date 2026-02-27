@@ -62,3 +62,16 @@ ORDER BY sequence_id ASC;
 
 -- name: UpdateMessageUserData :exec
 UPDATE messages SET user_data = ? WHERE message_id = ?;
+
+-- name: ListMessagesUpToSequence :many
+SELECT * FROM messages
+WHERE conversation_id = ? AND sequence_id <= ?
+ORDER BY sequence_id ASC;
+
+-- name: DeleteMessagesAfterSequence :exec
+DELETE FROM messages
+WHERE conversation_id = ? AND sequence_id > ?;
+
+-- name: DeleteMessagesFromSequence :exec
+DELETE FROM messages
+WHERE conversation_id = ? AND sequence_id >= ?;
