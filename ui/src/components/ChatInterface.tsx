@@ -497,6 +497,11 @@ interface ChatInterfaceProps {
     model: string,
     cwd?: string,
   ) => Promise<void>;
+  onForkConversation?: (
+    sourceConversationId: string,
+    atSequenceId: number,
+    model: string,
+  ) => Promise<void>;
   mostRecentCwd?: string | null;
   isDrawerCollapsed?: boolean;
   onToggleDrawerCollapse?: () => void;
@@ -519,6 +524,7 @@ function ChatInterface({
   onFirstMessage,
   onContinueConversation,
   onDistillConversation,
+  onForkConversation,
   mostRecentCwd,
   isDrawerCollapsed,
   onToggleDrawerCollapse,
@@ -1177,6 +1183,16 @@ function ChatInterface({
     );
   };
 
+  // Handler to fork conversation at a specific message
+  const handleForkConversation = async (sequenceId: number) => {
+    if (!conversationId || !onForkConversation) return;
+    try {
+      await onForkConversation(conversationId, sequenceId, selectedModel);
+    } catch (err) {
+      console.error("Fork failed:", err);
+    }
+  };
+
   const getDisplayTitle = () => {
     return currentConversation?.slug || "Percy";
   };
@@ -1427,6 +1443,7 @@ function ChatInterface({
               setShowDiffViewer(true);
             }}
             onCommentTextChange={setDiffCommentText}
+            onFork={onForkConversation ? handleForkConversation : undefined}
           />
         );
       } else if (item.type === "tool") {

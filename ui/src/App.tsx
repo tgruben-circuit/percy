@@ -463,6 +463,26 @@ function App() {
     }
   };
 
+  const handleForkConversation = async (
+    sourceConversationId: string,
+    atSequenceId: number,
+    model: string,
+  ) => {
+    try {
+      const response = await api.forkConversation(sourceConversationId, atSequenceId, model);
+      const newConversationId = response.conversation_id;
+
+      // Fetch the new conversation details and switch to the forked conversation
+      const updatedConvs = await api.getConversations();
+      setConversations(updatedConvs);
+      setCurrentConversationId(newConversationId);
+    } catch (err) {
+      console.error("Failed to fork conversation:", err);
+      setError("Failed to fork conversation");
+      throw err;
+    }
+  };
+
   return (
     <WorkerPoolContextProvider
       poolOptions={diffsPoolOptions}
@@ -501,6 +521,7 @@ function App() {
             onFirstMessage={handleFirstMessage}
             onContinueConversation={handleContinueConversation}
             onDistillConversation={handleDistillConversation}
+            onForkConversation={handleForkConversation}
             mostRecentCwd={mostRecentCwd}
             isDrawerCollapsed={drawerCollapsed}
             onToggleDrawerCollapse={toggleDrawerCollapsed}

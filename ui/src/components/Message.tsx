@@ -36,6 +36,7 @@ interface MessageProps {
   message: MessageType;
   onOpenDiffViewer?: (commit: string, cwd?: string) => void;
   onCommentTextChange?: (text: string) => void;
+  onFork?: (sequenceId: number) => void;
 }
 
 // Copy icon for the commit hash copy button
@@ -274,7 +275,7 @@ function DistillStatusMessage({ message }: { message: MessageType }) {
   );
 }
 
-function Message({ message, onOpenDiffViewer, onCommentTextChange }: MessageProps) {
+function Message({ message, onOpenDiffViewer, onCommentTextChange, onFork }: MessageProps) {
   // Render system messages with distill_status as status indicators
   if (message.type === "system") {
     if (isDistillStatusMessage(message)) {
@@ -978,9 +979,10 @@ function Message({ message, onOpenDiffViewer, onCommentTextChange }: MessageProp
           role="alert"
           aria-label="Error message"
         >
-          {actionBarVisible && (hasCopyAction || hasUsageAction) && (
+          {actionBarVisible && (hasCopyAction || hasUsageAction || onFork) && (
             <MessageActionBar
               onCopy={hasCopyAction ? handleCopy : undefined}
+              onFork={onFork ? () => onFork(message.sequence_id) : undefined}
               onShowUsage={hasUsageAction ? handleShowUsage : undefined}
             />
           )}
@@ -1013,9 +1015,10 @@ function Message({ message, onOpenDiffViewer, onCommentTextChange }: MessageProp
           data-testid="message"
           role="article"
         >
-          {actionBarVisible && (hasCopyAction || hasUsageAction) && (
+          {actionBarVisible && (hasCopyAction || hasUsageAction || onFork) && (
             <MessageActionBar
               onCopy={hasCopyAction ? handleCopy : undefined}
+              onFork={onFork ? () => onFork(message.sequence_id) : undefined}
               onShowUsage={hasUsageAction ? handleShowUsage : undefined}
             />
           )}
@@ -1086,9 +1089,10 @@ function Message({ message, onOpenDiffViewer, onCommentTextChange }: MessageProp
         data-testid="message"
         role="article"
       >
-        {actionBarVisible && (hasCopyAction || hasUsageAction) && (
+        {actionBarVisible && (hasCopyAction || hasUsageAction || onFork) && (
           <MessageActionBar
             onCopy={hasCopyAction ? handleCopy : undefined}
+            onFork={onFork ? () => onFork(message.sequence_id) : undefined}
             onShowUsage={hasUsageAction ? handleShowUsage : undefined}
           />
         )}

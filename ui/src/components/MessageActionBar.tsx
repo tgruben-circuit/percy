@@ -2,10 +2,11 @@ import React, { useState } from "react";
 
 interface MessageActionBarProps {
   onCopy?: () => void;
+  onFork?: () => void;
   onShowUsage?: () => void;
 }
 
-function MessageActionBar({ onCopy, onShowUsage }: MessageActionBarProps) {
+function MessageActionBar({ onCopy, onFork, onShowUsage }: MessageActionBarProps) {
   const [copyFeedback, setCopyFeedback] = useState(false);
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -14,6 +15,13 @@ function MessageActionBar({ onCopy, onShowUsage }: MessageActionBarProps) {
       onCopy();
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 1500);
+    }
+  };
+
+  const handleFork = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onFork) {
+      onFork();
     }
   };
 
@@ -97,6 +105,48 @@ function MessageActionBar({ onCopy, onShowUsage }: MessageActionBarProps) {
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
           )}
+        </button>
+      )}
+      {onFork && (
+        <button
+          onClick={handleFork}
+          title="Fork conversation from here"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "24px",
+            height: "24px",
+            borderRadius: "4px",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            color: "var(--text-secondary)",
+            transition: "background-color 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--bg-tertiary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="18" cy="18" r="3"></circle>
+            <circle cx="6" cy="6" r="3"></circle>
+            <circle cx="18" cy="6" r="3"></circle>
+            <path d="M6 9v6c0 1.657 1.343 3 3 3h3"></path>
+            <line x1="18" y1="9" x2="18" y2="15"></line>
+          </svg>
         </button>
       )}
       {onShowUsage && (

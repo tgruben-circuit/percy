@@ -378,6 +378,16 @@ class ApiService {
     }
     return response.json();
   }
+  async forkConversation(sourceConversationId: string, atSequenceId: number, model?: string): Promise<{ conversation_id: string }> {
+    const response = await fetch(`${this.baseUrl}/conversations/fork`, {
+      method: "POST",
+      headers: this.postHeaders,
+      body: JSON.stringify({ source_conversation_id: sourceConversationId, at_sequence_id: atSequenceId, model }),
+    });
+    if (!response.ok) throw new Error(`Failed to fork: ${response.statusText}`);
+    return response.json();
+  }
+
   async getTouchedFiles(conversationId: string): Promise<Array<{path: string; operation: string; count: number}>> {
     const response = await fetch(`${this.baseUrl}/conversation/${conversationId}/files`);
     if (!response.ok) throw new Error(`Failed to get files: ${response.statusText}`);
