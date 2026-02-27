@@ -37,6 +37,8 @@ interface MessageProps {
   onOpenDiffViewer?: (commit: string, cwd?: string) => void;
   onCommentTextChange?: (text: string) => void;
   onFork?: (sequenceId: number) => void;
+  onEdit?: (sequenceId: number, currentText: string) => void;
+  onRegenerate?: () => void;
 }
 
 // Copy icon for the commit hash copy button
@@ -275,7 +277,7 @@ function DistillStatusMessage({ message }: { message: MessageType }) {
   );
 }
 
-function Message({ message, onOpenDiffViewer, onCommentTextChange, onFork }: MessageProps) {
+function Message({ message, onOpenDiffViewer, onCommentTextChange, onFork, onEdit, onRegenerate }: MessageProps) {
   // Render system messages with distill_status as status indicators
   if (message.type === "system") {
     if (isDistillStatusMessage(message)) {
@@ -461,6 +463,18 @@ function Message({ message, onOpenDiffViewer, onCommentTextChange, onFork }: Mes
   const messageText = getMessageText();
   const hasCopyAction = !!messageText;
   const hasUsageAction = message.type === "agent" && !!usage;
+
+  // Extract user message text for edit functionality
+  const userMessageText = (() => {
+    if (message.user_data) {
+      try {
+        const ud = typeof message.user_data === 'string' ? JSON.parse(message.user_data) : message.user_data;
+        if (ud.text) return ud.text;
+      } catch { /* ignore */ }
+    }
+    return '';
+  })();
+  const isAgent = message.type === "agent";
 
   // Build a map of tool use IDs to their inputs for linking tool_result back to tool_use
   const toolUseMap: Record<string, { name: string; input: unknown }> = {};
@@ -979,11 +993,13 @@ function Message({ message, onOpenDiffViewer, onCommentTextChange, onFork }: Mes
           role="alert"
           aria-label="Error message"
         >
-          {actionBarVisible && (hasCopyAction || hasUsageAction || onFork) && (
+          {actionBarVisible && (hasCopyAction || hasUsageAction || onFork || (isUser && onEdit) || (isAgent && onRegenerate)) && (
             <MessageActionBar
               onCopy={hasCopyAction ? handleCopy : undefined}
               onFork={onFork ? () => onFork(message.sequence_id) : undefined}
               onShowUsage={hasUsageAction ? handleShowUsage : undefined}
+              onEdit={isUser && onEdit && userMessageText ? () => onEdit(message.sequence_id, userMessageText) : undefined}
+              onRegenerate={isAgent && onRegenerate ? onRegenerate : undefined}
             />
           )}
           <div className="message-content" data-testid="message-content">
@@ -1015,11 +1031,13 @@ function Message({ message, onOpenDiffViewer, onCommentTextChange, onFork }: Mes
           data-testid="message"
           role="article"
         >
-          {actionBarVisible && (hasCopyAction || hasUsageAction || onFork) && (
+          {actionBarVisible && (hasCopyAction || hasUsageAction || onFork || (isUser && onEdit) || (isAgent && onRegenerate)) && (
             <MessageActionBar
               onCopy={hasCopyAction ? handleCopy : undefined}
               onFork={onFork ? () => onFork(message.sequence_id) : undefined}
               onShowUsage={hasUsageAction ? handleShowUsage : undefined}
+              onEdit={isUser && onEdit && userMessageText ? () => onEdit(message.sequence_id, userMessageText) : undefined}
+              onRegenerate={isAgent && onRegenerate ? onRegenerate : undefined}
             />
           )}
           <div className="message-content" data-testid="message-content">
@@ -1089,11 +1107,13 @@ function Message({ message, onOpenDiffViewer, onCommentTextChange, onFork }: Mes
         data-testid="message"
         role="article"
       >
-        {actionBarVisible && (hasCopyAction || hasUsageAction || onFork) && (
+        {actionBarVisible && (hasCopyAction || hasUsageAction || onFork || (isUser && onEdit) || (isAgent && onRegenerate)) && (
           <MessageActionBar
             onCopy={hasCopyAction ? handleCopy : undefined}
             onFork={onFork ? () => onFork(message.sequence_id) : undefined}
             onShowUsage={hasUsageAction ? handleShowUsage : undefined}
+            onEdit={isUser && onEdit && userMessageText ? () => onEdit(message.sequence_id, userMessageText) : undefined}
+            onRegenerate={isAgent && onRegenerate ? onRegenerate : undefined}
           />
         )}
         {/* Message content */}

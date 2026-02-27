@@ -4,9 +4,11 @@ interface MessageActionBarProps {
   onCopy?: () => void;
   onFork?: () => void;
   onShowUsage?: () => void;
+  onEdit?: () => void;
+  onRegenerate?: () => void;
 }
 
-function MessageActionBar({ onCopy, onFork, onShowUsage }: MessageActionBarProps) {
+function MessageActionBar({ onCopy, onFork, onShowUsage, onEdit, onRegenerate }: MessageActionBarProps) {
   const [copyFeedback, setCopyFeedback] = useState(false);
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -49,6 +51,84 @@ function MessageActionBar({ onCopy, onFork, onShowUsage }: MessageActionBarProps
         zIndex: 10,
       }}
     >
+      {onEdit && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          title="Edit message"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "24px",
+            height: "24px",
+            borderRadius: "4px",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            color: "var(--text-secondary)",
+            transition: "background-color 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--bg-tertiary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+      )}
+      {onRegenerate && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRegenerate(); }}
+          title="Regenerate response"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "24px",
+            height: "24px",
+            borderRadius: "4px",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            color: "var(--text-secondary)",
+            transition: "background-color 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--bg-tertiary)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+        </button>
+      )}
       {onCopy && (
         <button
           onClick={handleCopy}

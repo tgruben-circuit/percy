@@ -393,6 +393,23 @@ class ApiService {
     if (!response.ok) throw new Error(`Failed to get files: ${response.statusText}`);
     return response.json();
   }
+
+  async editMessage(conversationId: string, sequenceId: number, message: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/conversation/${conversationId}/edit`, {
+      method: "POST",
+      headers: this.postHeaders,
+      body: JSON.stringify({ sequence_id: sequenceId, message }),
+    });
+    if (!response.ok) throw new Error(`Failed to edit: ${response.statusText}`);
+  }
+
+  async regenerateMessage(conversationId: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/conversation/${conversationId}/regenerate`, {
+      method: "POST",
+      headers: this.postHeaders,
+    });
+    if (!response.ok) throw new Error(`Failed to regenerate: ${response.statusText}`);
+  }
 }
 
 export const api = new ApiService();

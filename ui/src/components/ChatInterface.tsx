@@ -665,6 +665,7 @@ function ChatInterface({
     description: string;
   }> | null>(null);
   const [showFileTree, setShowFileTree] = useState(false);
+  const [editingMessage, setEditingMessage] = useState<{sequenceId: number; text: string} | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -1019,6 +1020,12 @@ function ChatInterface({
   const sendMessage = async (message: string) => {
     if (!message.trim() || sending) return;
 
+    // If we're in edit mode, send as an edit instead of a new message
+    if (editingMessage) {
+      await handleEditMessage(editingMessage.sequenceId, message.trim());
+      return;
+    }
+
     // Check if this is a shell command (starts with "!")
     const trimmedMessage = message.trim();
     if (trimmedMessage.startsWith("!")) {
@@ -1190,6 +1197,31 @@ function ChatInterface({
       await onForkConversation(conversationId, sequenceId, selectedModel);
     } catch (err) {
       console.error("Fork failed:", err);
+    }
+  };
+
+  // Handler to edit a user message and re-run from that point
+  const handleEditMessage = async (sequenceId: number, newText: string) => {
+    if (!conversationId) return;
+    try {
+      await api.editMessage(conversationId, sequenceId, newText);
+      setEditingMessage(null);
+      // Refetch messages - the SSE stream will pick up new messages,
+      // but we need to clear stale messages after the edit point
+      loadMessages();
+    } catch (err) {
+      console.error("Edit failed:", err);
+    }
+  };
+
+  // Handler to regenerate the last agent response
+  const handleRegenerate = async () => {
+    if (!conversationId) return;
+    try {
+      await api.regenerateMessage(conversationId);
+      loadMessages();
+    } catch (err) {
+      console.error("Regenerate failed:", err);
     }
   };
 
@@ -1444,6 +1476,8 @@ function ChatInterface({
             }}
             onCommentTextChange={setDiffCommentText}
             onFork={onForkConversation ? handleForkConversation : undefined}
+            onEdit={(sequenceId, text) => setEditingMessage({sequenceId, text})}
+            onRegenerate={handleRegenerate}
           />
         );
       } else if (item.type === "tool") {
@@ -2104,6 +2138,8 @@ function ChatInterface({
           setTerminalInjectedText(null);
         }}
         persistKey={conversationId || "new-conversation"}
+        editingMessage={editingMessage}
+        onCancelEdit={() => setEditingMessage(null)}
       />
 
       {/* Directory Picker Modal */}
