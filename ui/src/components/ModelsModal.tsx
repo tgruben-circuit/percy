@@ -13,13 +13,14 @@ interface ModelsModalProps {
   onModelsChanged?: () => void;
 }
 
-type ProviderType = "anthropic" | "openai" | "openai-responses" | "gemini";
+type ProviderType = "anthropic" | "openai" | "openai-responses" | "gemini" | "ollama";
 
 const DEFAULT_ENDPOINTS: Record<ProviderType, string> = {
   anthropic: "https://api.anthropic.com/v1/messages",
   openai: "https://api.openai.com/v1",
   "openai-responses": "https://api.openai.com/v1",
   gemini: "https://generativelanguage.googleapis.com/v1beta",
+  ollama: "http://localhost:11434/v1",
 };
 
 const PROVIDER_LABELS: Record<ProviderType, string> = {
@@ -27,6 +28,7 @@ const PROVIDER_LABELS: Record<ProviderType, string> = {
   openai: "OpenAI (Chat API)",
   "openai-responses": "OpenAI (Responses API)",
   gemini: "Google Gemini",
+  ollama: "Ollama (Local)",
 };
 
 const DEFAULT_MODELS: Record<ProviderType, { name: string; model_name: string }[]> = {
@@ -41,6 +43,7 @@ const DEFAULT_MODELS: Record<ProviderType, { name: string; model_name: string }[
     { name: "Gemini 3 Pro", model_name: "gemini-3-pro-preview" },
     { name: "Gemini 3 Flash", model_name: "gemini-3-flash-preview" },
   ],
+  ollama: [],
 };
 
 // Built-in model info from init data
@@ -143,12 +146,12 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
   };
 
   const handleTest = async () => {
-    // Need model_name always, and either api_key or editing an existing model
+    // Need model_name always, and either api_key or editing an existing model (Ollama doesn't need a key)
     if (!form.model_name) {
       setTestResult({ success: false, message: "Model name is required" });
       return;
     }
-    if (!form.api_key && !editingModelId) {
+    if (!form.api_key && !editingModelId && form.provider_type !== "ollama") {
       setTestResult({ success: false, message: "API key is required" });
       return;
     }
@@ -161,7 +164,7 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
         model_id: editingModelId || undefined, // Pass model_id to use stored key
         provider_type: form.provider_type,
         endpoint: form.endpoint,
-        api_key: form.api_key,
+        api_key: form.provider_type === "ollama" ? (form.api_key || "ollama") : form.api_key,
         model_name: form.model_name,
       };
       const result = await customModelsApi.testCustomModel(request);
@@ -177,8 +180,9 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
   };
 
   const handleSave = async () => {
-    if (!form.display_name || !form.api_key || !form.model_name) {
-      setError("Display name, API key, and model name are required");
+    const needsApiKey = form.provider_type !== "ollama";
+    if (!form.display_name || (needsApiKey && !form.api_key) || !form.model_name) {
+      setError(needsApiKey ? "Display name, API key, and model name are required" : "Display name and model name are required");
       return;
     }
 
@@ -188,7 +192,7 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
         display_name: form.display_name,
         provider_type: form.provider_type,
         endpoint: form.endpoint,
-        api_key: form.api_key,
+        api_key: form.provider_type === "ollama" ? (form.api_key || "ollama") : form.api_key,
         model_name: form.model_name,
         max_tokens: form.max_tokens,
         tags: form.tags,
@@ -301,7 +305,7 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
             <div className="form-group">
               <label>Provider / API Format</label>
               <div className="provider-buttons">
-                {(["anthropic", "openai", "openai-responses", "gemini"] as ProviderType[]).map(
+                {(["anthropic", "openai", "openai-responses", "gemini", "ollama"] as ProviderType[]).map(
                   (p) => (
                     <button
                       key={p}
@@ -386,12 +390,12 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
 
             {/* API Key */}
             <div className="form-group">
-              <label>API Key</label>
+              <label>API Key{form.provider_type === "ollama" ? " (optional)" : ""}</label>
               <input
                 type="text"
                 value={form.api_key}
                 onChange={(e) => setForm((prev) => ({ ...prev, api_key: e.target.value }))}
-                placeholder="Enter API key"
+                placeholder={form.provider_type === "ollama" ? "Not required for local Ollama" : "Enter API key"}
                 className="form-input"
                 autoComplete="off"
               />
@@ -472,11 +476,11 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
                 type="button"
                 className="btn-secondary"
                 onClick={handleTest}
-                disabled={testing || (!form.api_key && !editingModelId) || !form.model_name}
+                disabled={testing || (!form.api_key && !editingModelId && form.provider_type !== "ollama") || !form.model_name}
                 title={
                   !form.model_name
                     ? "Enter model name to test"
-                    : !form.api_key && !editingModelId
+                    : !form.api_key && !editingModelId && form.provider_type !== "ollama"
                       ? "Enter API key to test"
                       : ""
                 }
@@ -487,7 +491,7 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
                 type="button"
                 className="btn-primary"
                 onClick={handleSave}
-                disabled={!form.display_name || !form.api_key || !form.model_name}
+                disabled={!form.display_name || (form.provider_type !== "ollama" && !form.api_key) || !form.model_name}
               >
                 {editingModelId ? "Save" : "Add Model"}
               </button>
