@@ -3,17 +3,19 @@
 -- Returns one row per (date, model) pair.
 SELECT
   date(m.created_at) as date,
-  c.model,
+  json_extract(m.usage_data, '$.model') as usage_model,
   COUNT(*) as message_count,
   COALESCE(SUM(json_extract(m.usage_data, '$.input_tokens')), 0) as total_input_tokens,
   COALESCE(SUM(json_extract(m.usage_data, '$.output_tokens')), 0) as total_output_tokens,
+  COALESCE(SUM(json_extract(m.usage_data, '$.cache_read_input_tokens')), 0) as total_cache_read_tokens,
+  COALESCE(SUM(json_extract(m.usage_data, '$.cache_creation_input_tokens')), 0) as total_cache_write_tokens,
   COALESCE(SUM(json_extract(m.usage_data, '$.cost_usd')), 0) as total_cost_usd
 FROM messages m
 JOIN conversations c ON m.conversation_id = c.conversation_id
 WHERE m.type = 'agent'
   AND m.usage_data IS NOT NULL
   AND m.created_at >= ?
-GROUP BY date(m.created_at), c.model
+GROUP BY date(m.created_at), json_extract(m.usage_data, '$.model')
 ORDER BY date(m.created_at) DESC;
 
 -- name: GetUsageByConversation :many
@@ -21,10 +23,12 @@ ORDER BY date(m.created_at) DESC;
 SELECT
   c.conversation_id,
   c.slug,
-  c.model,
+  json_extract(m.usage_data, '$.model') as usage_model,
   COUNT(*) as message_count,
   COALESCE(SUM(json_extract(m.usage_data, '$.input_tokens')), 0) as total_input_tokens,
   COALESCE(SUM(json_extract(m.usage_data, '$.output_tokens')), 0) as total_output_tokens,
+  COALESCE(SUM(json_extract(m.usage_data, '$.cache_read_input_tokens')), 0) as total_cache_read_tokens,
+  COALESCE(SUM(json_extract(m.usage_data, '$.cache_creation_input_tokens')), 0) as total_cache_write_tokens,
   COALESCE(SUM(json_extract(m.usage_data, '$.cost_usd')), 0) as total_cost_usd
 FROM messages m
 JOIN conversations c ON m.conversation_id = c.conversation_id

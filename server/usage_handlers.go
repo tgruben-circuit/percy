@@ -7,15 +7,16 @@ import (
 	"time"
 
 	"github.com/tgruben-circuit/percy/db/generated"
+	"github.com/tgruben-circuit/percy/llm"
 )
 
 type usageDateRow struct {
-	Date             string  `json:"date"`
-	Model            *string `json:"model"`
-	MessageCount     int64   `json:"message_count"`
-	TotalInputTokens float64 `json:"total_input_tokens"`
+	Date              string  `json:"date"`
+	Model             *string `json:"model"`
+	MessageCount      int64   `json:"message_count"`
+	TotalInputTokens  float64 `json:"total_input_tokens"`
 	TotalOutputTokens float64 `json:"total_output_tokens"`
-	TotalCostUSD     float64 `json:"total_cost_usd"`
+	TotalCostUSD      float64 `json:"total_cost_usd"`
 }
 
 type usageConversationRow struct {
@@ -29,9 +30,9 @@ type usageConversationRow struct {
 }
 
 type usageResponse struct {
-	ByDate          []usageDateRow         `json:"by_date"`
-	ByConversation  []usageConversationRow `json:"by_conversation"`
-	TotalCostUSD    float64                `json:"total_cost_usd"`
+	ByDate         []usageDateRow         `json:"by_date"`
+	ByConversation []usageConversationRow `json:"by_conversation"`
+	TotalCostUSD   float64                `json:"total_cost_usd"`
 }
 
 func toFloat64(v interface{}) float64 {
@@ -47,6 +48,18 @@ func toFloat64(v interface{}) float64 {
 	}
 }
 
+func toStringPtr(v interface{}) *string {
+	switch s := v.(type) {
+	case string:
+		return &s
+	case nil:
+		return nil
+	default:
+		str := fmt.Sprintf("%v", s)
+		return &str
+	}
+}
+
 func toString(v interface{}) string {
 	switch s := v.(type) {
 	case string:
@@ -56,6 +69,17 @@ func toString(v interface{}) string {
 	default:
 		return fmt.Sprintf("%v", s)
 	}
+}
+
+// estimateCost returns the stored cost if non-zero, otherwise estimates from token counts and model.
+func estimateCost(storedCost float64, model *string, inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens float64) float64 {
+	if storedCost > 0 {
+		return storedCost
+	}
+	if model == nil {
+		return 0
+	}
+	return llm.EstimateCostUSD(*model, uint64(inputTokens), uint64(outputTokens), uint64(cacheReadTokens), uint64(cacheWriteTokens))
 }
 
 func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request) {
@@ -107,13 +131,18 @@ func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request) {
 	var totalCost float64
 	byDate := make([]usageDateRow, len(byDateRows))
 	for i, row := range byDateRows {
-		cost := toFloat64(row.TotalCostUsd)
+		model := toStringPtr(row.UsageModel)
+		input := toFloat64(row.TotalInputTokens)
+		output := toFloat64(row.TotalOutputTokens)
+		cacheRead := toFloat64(row.TotalCacheReadTokens)
+		cacheWrite := toFloat64(row.TotalCacheWriteTokens)
+		cost := estimateCost(toFloat64(row.TotalCostUsd), model, input, output, cacheRead, cacheWrite)
 		byDate[i] = usageDateRow{
 			Date:              toString(row.Date),
-			Model:             row.Model,
+			Model:             model,
 			MessageCount:      row.MessageCount,
-			TotalInputTokens:  toFloat64(row.TotalInputTokens),
-			TotalOutputTokens: toFloat64(row.TotalOutputTokens),
+			TotalInputTokens:  input,
+			TotalOutputTokens: output,
 			TotalCostUSD:      cost,
 		}
 		totalCost += cost
@@ -121,14 +150,20 @@ func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request) {
 
 	byConv := make([]usageConversationRow, len(byConvRows))
 	for i, row := range byConvRows {
+		model := toStringPtr(row.UsageModel)
+		input := toFloat64(row.TotalInputTokens)
+		output := toFloat64(row.TotalOutputTokens)
+		cacheRead := toFloat64(row.TotalCacheReadTokens)
+		cacheWrite := toFloat64(row.TotalCacheWriteTokens)
+		cost := estimateCost(toFloat64(row.TotalCostUsd), model, input, output, cacheRead, cacheWrite)
 		byConv[i] = usageConversationRow{
 			ConversationID:    row.ConversationID,
 			Slug:              row.Slug,
-			Model:             row.Model,
+			Model:             model,
 			MessageCount:      row.MessageCount,
-			TotalInputTokens:  toFloat64(row.TotalInputTokens),
-			TotalOutputTokens: toFloat64(row.TotalOutputTokens),
-			TotalCostUSD:      toFloat64(row.TotalCostUsd),
+			TotalInputTokens:  input,
+			TotalOutputTokens: output,
+			TotalCostUSD:      cost,
 		}
 	}
 

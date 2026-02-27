@@ -14,10 +14,12 @@ const getUsageByConversation = `-- name: GetUsageByConversation :many
 SELECT
   c.conversation_id,
   c.slug,
-  c.model,
+  json_extract(m.usage_data, '$.model') as usage_model,
   COUNT(*) as message_count,
   COALESCE(SUM(json_extract(m.usage_data, '$.input_tokens')), 0) as total_input_tokens,
   COALESCE(SUM(json_extract(m.usage_data, '$.output_tokens')), 0) as total_output_tokens,
+  COALESCE(SUM(json_extract(m.usage_data, '$.cache_read_input_tokens')), 0) as total_cache_read_tokens,
+  COALESCE(SUM(json_extract(m.usage_data, '$.cache_creation_input_tokens')), 0) as total_cache_write_tokens,
   COALESCE(SUM(json_extract(m.usage_data, '$.cost_usd')), 0) as total_cost_usd
 FROM messages m
 JOIN conversations c ON m.conversation_id = c.conversation_id
@@ -29,13 +31,15 @@ ORDER BY total_cost_usd DESC
 `
 
 type GetUsageByConversationRow struct {
-	ConversationID    string      `json:"conversation_id"`
-	Slug              *string     `json:"slug"`
-	Model             *string     `json:"model"`
-	MessageCount      int64       `json:"message_count"`
-	TotalInputTokens  interface{} `json:"total_input_tokens"`
-	TotalOutputTokens interface{} `json:"total_output_tokens"`
-	TotalCostUsd      interface{} `json:"total_cost_usd"`
+	ConversationID        string      `json:"conversation_id"`
+	Slug                  *string     `json:"slug"`
+	UsageModel            interface{} `json:"usage_model"`
+	MessageCount          int64       `json:"message_count"`
+	TotalInputTokens      interface{} `json:"total_input_tokens"`
+	TotalOutputTokens     interface{} `json:"total_output_tokens"`
+	TotalCacheReadTokens  interface{} `json:"total_cache_read_tokens"`
+	TotalCacheWriteTokens interface{} `json:"total_cache_write_tokens"`
+	TotalCostUsd          interface{} `json:"total_cost_usd"`
 }
 
 // Aggregates usage per conversation for a date range.
@@ -51,10 +55,12 @@ func (q *Queries) GetUsageByConversation(ctx context.Context, createdAt time.Tim
 		if err := rows.Scan(
 			&i.ConversationID,
 			&i.Slug,
-			&i.Model,
+			&i.UsageModel,
 			&i.MessageCount,
 			&i.TotalInputTokens,
 			&i.TotalOutputTokens,
+			&i.TotalCacheReadTokens,
+			&i.TotalCacheWriteTokens,
 			&i.TotalCostUsd,
 		); err != nil {
 			return nil, err
@@ -73,27 +79,31 @@ func (q *Queries) GetUsageByConversation(ctx context.Context, createdAt time.Tim
 const getUsageByDate = `-- name: GetUsageByDate :many
 SELECT
   date(m.created_at) as date,
-  c.model,
+  json_extract(m.usage_data, '$.model') as usage_model,
   COUNT(*) as message_count,
   COALESCE(SUM(json_extract(m.usage_data, '$.input_tokens')), 0) as total_input_tokens,
   COALESCE(SUM(json_extract(m.usage_data, '$.output_tokens')), 0) as total_output_tokens,
+  COALESCE(SUM(json_extract(m.usage_data, '$.cache_read_input_tokens')), 0) as total_cache_read_tokens,
+  COALESCE(SUM(json_extract(m.usage_data, '$.cache_creation_input_tokens')), 0) as total_cache_write_tokens,
   COALESCE(SUM(json_extract(m.usage_data, '$.cost_usd')), 0) as total_cost_usd
 FROM messages m
 JOIN conversations c ON m.conversation_id = c.conversation_id
 WHERE m.type = 'agent'
   AND m.usage_data IS NOT NULL
   AND m.created_at >= ?
-GROUP BY date(m.created_at), c.model
+GROUP BY date(m.created_at), json_extract(m.usage_data, '$.model')
 ORDER BY date(m.created_at) DESC
 `
 
 type GetUsageByDateRow struct {
-	Date              interface{} `json:"date"`
-	Model             *string     `json:"model"`
-	MessageCount      int64       `json:"message_count"`
-	TotalInputTokens  interface{} `json:"total_input_tokens"`
-	TotalOutputTokens interface{} `json:"total_output_tokens"`
-	TotalCostUsd      interface{} `json:"total_cost_usd"`
+	Date                  interface{} `json:"date"`
+	UsageModel            interface{} `json:"usage_model"`
+	MessageCount          int64       `json:"message_count"`
+	TotalInputTokens      interface{} `json:"total_input_tokens"`
+	TotalOutputTokens     interface{} `json:"total_output_tokens"`
+	TotalCacheReadTokens  interface{} `json:"total_cache_read_tokens"`
+	TotalCacheWriteTokens interface{} `json:"total_cache_write_tokens"`
+	TotalCostUsd          interface{} `json:"total_cost_usd"`
 }
 
 // Aggregates usage data from agent messages.
@@ -109,10 +119,12 @@ func (q *Queries) GetUsageByDate(ctx context.Context, createdAt time.Time) ([]Ge
 		var i GetUsageByDateRow
 		if err := rows.Scan(
 			&i.Date,
-			&i.Model,
+			&i.UsageModel,
 			&i.MessageCount,
 			&i.TotalInputTokens,
 			&i.TotalOutputTokens,
+			&i.TotalCacheReadTokens,
+			&i.TotalCacheWriteTokens,
 			&i.TotalCostUsd,
 		); err != nil {
 			return nil, err

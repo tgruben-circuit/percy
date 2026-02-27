@@ -360,6 +360,14 @@ func (u *Usage) ContextWindowUsed() uint64 {
 	return u.TotalInputTokens() + u.OutputTokens
 }
 
+// FillCostEstimate sets CostUSD from the pricing table if it is currently zero.
+func (u *Usage) FillCostEstimate() {
+	if u.CostUSD != 0 || u.Model == "" {
+		return
+	}
+	u.CostUSD = EstimateCostUSD(u.Model, u.InputTokens, u.OutputTokens, u.CacheReadInputTokens, u.CacheCreationInputTokens)
+}
+
 func (u *Usage) IsZero() bool {
 	return *u == Usage{}
 }

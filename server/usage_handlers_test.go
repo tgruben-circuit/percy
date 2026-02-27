@@ -31,6 +31,7 @@ func TestHandleUsage(t *testing.T) {
 		"input_tokens":  1000,
 		"output_tokens": 200,
 		"cost_usd":      0.05,
+		"model":         "test-model",
 	}
 	_, err = h.db.CreateMessage(ctx, db.CreateMessageParams{
 		ConversationID: conv.ConversationID,
@@ -66,6 +67,58 @@ func TestHandleUsage(t *testing.T) {
 	}
 	if resp.TotalCostUSD != 0.05 {
 		t.Fatalf("expected total cost 0.05, got %f", resp.TotalCostUSD)
+	}
+}
+
+func TestHandleUsageCostEstimation(t *testing.T) {
+	h := NewTestHarness(t)
+	defer h.cleanup()
+
+	ctx := context.Background()
+	model := "claude-opus-4-6"
+	conv, err := h.db.CreateConversation(ctx, nil, true, nil, &model)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Agent message with zero cost_usd but known model — should be estimated
+	usageData := map[string]interface{}{
+		"input_tokens":                  1000,
+		"output_tokens":                 500,
+		"cache_read_input_tokens":       0,
+		"cache_creation_input_tokens":   0,
+		"cost_usd":                      0,
+		"model":                         "claude-opus-4-6",
+	}
+	_, err = h.db.CreateMessage(ctx, db.CreateMessageParams{
+		ConversationID: conv.ConversationID,
+		Type:           db.MessageTypeAgent,
+		LLMData: llm.Message{
+			Role:    llm.MessageRoleAssistant,
+			Content: []llm.Content{{Type: llm.ContentTypeText, Text: "hi"}},
+		},
+		UsageData: usageData,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest("GET", "/api/usage?since=2020-01-01", nil)
+	w := httptest.NewRecorder()
+	h.server.handleUsage(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp usageResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+
+	// Cost should be estimated: 1000*15/1M + 500*75/1M = 0.015 + 0.0375 = 0.0525
+	if resp.TotalCostUSD < 0.05 || resp.TotalCostUSD > 0.06 {
+		t.Fatalf("expected estimated cost ~0.0525, got %f", resp.TotalCostUSD)
 	}
 }
 
