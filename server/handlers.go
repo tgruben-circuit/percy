@@ -540,6 +540,9 @@ func (s *Server) conversationMux() *http.ServeMux {
 	mux.HandleFunc("GET /{id}/subagents", func(w http.ResponseWriter, r *http.Request) {
 		s.handleGetSubagents(w, r, r.PathValue("id"))
 	})
+	mux.HandleFunc("GET /{id}/export", func(w http.ResponseWriter, r *http.Request) {
+		s.handleExportConversation(w, r)
+	})
 	return mux
 }
 
