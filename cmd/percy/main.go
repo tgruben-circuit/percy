@@ -355,11 +355,18 @@ func setupToolSetConfig(llmProvider claudetool.LLMServiceProvider) claudetool.To
 
 // buildLLMConfig constructs LLMConfig from environment variables and optional config file
 func buildLLMConfig(logger *slog.Logger, configPath, terminalURL, defaultModel string, database *db.DB) *server.LLMConfig {
+	// Ollama URL: env var > default
+	ollamaURL := os.Getenv("OLLAMA_URL")
+	if ollamaURL == "" {
+		ollamaURL = "http://localhost:11434"
+	}
+
 	llmCfg := &server.LLMConfig{
 		AnthropicAPIKey: os.Getenv("ANTHROPIC_API_KEY"),
 		OpenAIAPIKey:    os.Getenv("OPENAI_API_KEY"),
 		GeminiAPIKey:    os.Getenv("GEMINI_API_KEY"),
 		FireworksAPIKey: os.Getenv("FIREWORKS_API_KEY"),
+		OllamaURL:       ollamaURL,
 		TerminalURL:     terminalURL,
 		DefaultModel:    defaultModel,
 		DB:              database,

@@ -37,6 +37,10 @@ type LLMConfig struct {
 	// Each entry is a map with at least a "type" key, plus channel-specific fields.
 	NotificationChannels []map[string]any
 
+	// OllamaURL is the base URL of a local Ollama instance for auto-discovery.
+	// Default: "http://localhost:11434". Set to "" to disable.
+	OllamaURL string
+
 	// DB is the database for recording LLM requests (optional)
 	DB *db.DB
 

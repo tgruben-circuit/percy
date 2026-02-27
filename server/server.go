@@ -91,6 +91,7 @@ func NewLLMServiceManager(cfg *LLMConfig) LLMProvider {
 		GeminiAPIKey:    cfg.GeminiAPIKey,
 		FireworksAPIKey: cfg.FireworksAPIKey,
 		Gateway:         cfg.Gateway,
+		OllamaURL:       cfg.OllamaURL,
 		Logger:          cfg.Logger,
 		DB:              cfg.DB,
 	}
