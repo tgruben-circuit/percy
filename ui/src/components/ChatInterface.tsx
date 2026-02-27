@@ -1617,6 +1617,57 @@ function ChatInterface({
                   </button>
                 ))}
 
+                {/* Export options */}
+                {currentConversation && (
+                  <>
+                    <div className="overflow-menu-divider" />
+                    <button
+                      onClick={() => {
+                        setShowOverflowMenu(false);
+                        window.open(`/api/conversation/${currentConversation.conversation_id}/export?format=markdown`, "_blank");
+                      }}
+                      className="overflow-menu-item"
+                    >
+                      <svg
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        style={{ width: "1.25rem", height: "1.25rem", marginRight: "0.75rem" }}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      Export Markdown
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowOverflowMenu(false);
+                        window.open(`/api/conversation/${currentConversation.conversation_id}/export?format=json`, "_blank");
+                      }}
+                      className="overflow-menu-item"
+                    >
+                      <svg
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        style={{ width: "1.25rem", height: "1.25rem", marginRight: "0.75rem" }}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      Export JSON
+                    </button>
+                  </>
+                )}
+
                 {/* Version check */}
                 <div className="overflow-menu-divider" />
                 <button
