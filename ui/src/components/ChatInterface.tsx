@@ -38,6 +38,7 @@ import { useVersionChecker } from "./VersionChecker";
 import TerminalPanel, { EphemeralTerminal } from "./TerminalPanel";
 import ModelPicker from "./ModelPicker";
 import SystemPromptView from "./SystemPromptView";
+import FileTreePanel from "./FileTreePanel";
 
 interface ContextUsageBarProps {
   contextWindowSize: number;
@@ -657,6 +658,7 @@ function ChatInterface({
     name: string;
     description: string;
   }> | null>(null);
+  const [showFileTree, setShowFileTree] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -1517,6 +1519,26 @@ function ChatInterface({
             </svg>
           </button>
 
+          {/* Files toggle button */}
+          {conversationId && (
+            <button
+              onClick={() => setShowFileTree(!showFileTree)}
+              className="btn-icon"
+              aria-label="Toggle file tree"
+              title="Files touched by agent"
+              style={showFileTree ? { color: "var(--blue-text)" } : undefined}
+            >
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                />
+              </svg>
+            </button>
+          )}
+
           {/* Overflow menu */}
           <div ref={overflowMenuRef} style={{ position: "relative" }}>
             <button
@@ -1826,6 +1848,15 @@ function ChatInterface({
             </div>
           )}
         </div>
+
+        {/* File tree panel overlay */}
+        {showFileTree && conversationId && (
+          <FileTreePanel
+            conversationId={conversationId}
+            messageCount={messages.length}
+            onClose={() => setShowFileTree(false)}
+          />
+        )}
 
         {/* Scroll to bottom button - outside scrollable area */}
         {showScrollToBottom && (

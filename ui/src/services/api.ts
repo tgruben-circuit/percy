@@ -378,6 +378,11 @@ class ApiService {
     }
     return response.json();
   }
+  async getTouchedFiles(conversationId: string): Promise<Array<{path: string; operation: string; count: number}>> {
+    const response = await fetch(`${this.baseUrl}/conversation/${conversationId}/files`);
+    if (!response.ok) throw new Error(`Failed to get files: ${response.statusText}`);
+    return response.json();
+  }
 }
 
 export const api = new ApiService();
