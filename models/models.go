@@ -118,6 +118,10 @@ type Config struct {
 	// If set, model-specific suffixes will be appended
 	Gateway string
 
+	// OllamaURL is the base URL of a local Ollama instance for auto-discovery.
+	// Default: "http://localhost:11434". Set to "" to disable.
+	OllamaURL string
+
 	Logger *slog.Logger
 
 	// Database for recording LLM requests (optional)
@@ -611,6 +615,37 @@ func NewManager(cfg *Config) (*Manager, error) {
 	// Load custom models from database
 	if err := manager.loadCustomModels(); err != nil && cfg.Logger != nil {
 		cfg.Logger.Warn("Failed to load custom models", "error", err)
+	}
+
+	// Discover Ollama models if configured
+	if cfg.OllamaURL != "" {
+		ollamaModels, err := DiscoverOllamaModels(cfg.OllamaURL, httpc)
+		if err != nil {
+			if cfg.Logger != nil {
+				cfg.Logger.Debug("Ollama discovery failed (Ollama may not be running)", "url", cfg.OllamaURL, "error", err)
+			}
+		} else {
+			for _, model := range ollamaModels {
+				if _, exists := manager.services[model.ID]; exists {
+					continue // Skip if already registered
+				}
+				svc, err := model.Factory(cfg, httpc)
+				if err != nil {
+					continue
+				}
+				manager.services[model.ID] = serviceEntry{
+					service:     svc,
+					provider:    ProviderOllama,
+					modelID:     model.ID,
+					source:      "Ollama",
+					displayName: model.Description,
+				}
+				manager.modelOrder = append(manager.modelOrder, model.ID)
+			}
+			if cfg.Logger != nil && len(ollamaModels) > 0 {
+				cfg.Logger.Info("Discovered Ollama models", "count", len(ollamaModels))
+			}
+		}
 	}
 
 	return manager, nil
