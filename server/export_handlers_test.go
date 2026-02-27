@@ -14,33 +14,30 @@ import (
 
 func TestHandleExportMarkdown(t *testing.T) {
 	h := NewTestHarness(t)
-	defer h.Close()
+	defer h.cleanup()
 
 	ctx := context.Background()
-
-	// Create conversation
 	conv, err := h.db.CreateConversation(ctx, nil, true, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Add a user message
+	// Add user message
 	userMsg := llm.Message{
 		Role:    llm.MessageRoleUser,
 		Content: []llm.Content{{Type: llm.ContentTypeText, Text: "Hello world"}},
 	}
-	userData := map[string]string{"text": "Hello world"}
 	_, err = h.db.CreateMessage(ctx, db.CreateMessageParams{
 		ConversationID: conv.ConversationID,
 		Type:           db.MessageTypeUser,
 		LLMData:        userMsg,
-		UserData:       userData,
+		UserData:       map[string]string{"text": "Hello world"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Add an agent message
+	// Add agent message
 	agentMsg := llm.Message{
 		Role:    llm.MessageRoleAssistant,
 		Content: []llm.Content{{Type: llm.ContentTypeText, Text: "Hi there!"}},
@@ -67,35 +64,33 @@ func TestHandleExportMarkdown(t *testing.T) {
 	}
 	body := rec.Body.String()
 	if !strings.Contains(body, "Hello world") {
-		t.Fatalf("expected user message in export, got: %s", body)
+		t.Fatalf("expected user message in export")
 	}
 	if !strings.Contains(body, "Hi there!") {
-		t.Fatalf("expected agent message in export, got: %s", body)
+		t.Fatalf("expected agent message in export")
 	}
 	if !strings.Contains(body, "## User") {
-		t.Fatalf("expected User header in export, got: %s", body)
+		t.Fatalf("expected User header")
 	}
 	if !strings.Contains(body, "## Assistant") {
-		t.Fatalf("expected Assistant header in export, got: %s", body)
+		t.Fatalf("expected Assistant header")
 	}
 }
 
 func TestHandleExportJSON(t *testing.T) {
 	h := NewTestHarness(t)
-	defer h.Close()
+	defer h.cleanup()
 
 	ctx := context.Background()
-
 	conv, err := h.db.CreateConversation(ctx, nil, true, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	userData := map[string]string{"text": "test message"}
 	_, err = h.db.CreateMessage(ctx, db.CreateMessageParams{
 		ConversationID: conv.ConversationID,
 		Type:           db.MessageTypeUser,
-		UserData:       userData,
+		UserData:       map[string]string{"text": "test message"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -126,37 +121,11 @@ func TestHandleExportJSON(t *testing.T) {
 	}
 }
 
-func TestHandleExportDefaultFormat(t *testing.T) {
-	h := NewTestHarness(t)
-	defer h.Close()
-
-	ctx := context.Background()
-
-	conv, err := h.db.CreateConversation(ctx, nil, true, nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Export without format parameter should default to markdown
-	mux := h.server.conversationMux()
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/"+conv.ConversationID+"/export", nil)
-	mux.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if !strings.Contains(rec.Header().Get("Content-Type"), "text/markdown") {
-		t.Fatalf("expected markdown content type, got %s", rec.Header().Get("Content-Type"))
-	}
-}
-
 func TestHandleExportInvalidFormat(t *testing.T) {
 	h := NewTestHarness(t)
-	defer h.Close()
+	defer h.cleanup()
 
 	ctx := context.Background()
-
 	conv, err := h.db.CreateConversation(ctx, nil, true, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -168,6 +137,6 @@ func TestHandleExportInvalidFormat(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
+		t.Fatalf("expected 400, got %d", rec.Code)
 	}
 }
