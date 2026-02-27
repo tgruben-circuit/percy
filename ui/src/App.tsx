@@ -7,6 +7,7 @@ import ConversationDrawer from "./components/ConversationDrawer";
 import CommandPalette from "./components/CommandPalette";
 import ModelsModal from "./components/ModelsModal";
 import NotificationsModal from "./components/NotificationsModal";
+import CostDashboard from "./components/CostDashboard";
 import ClusterDashboard from "./components/ClusterDashboard";
 import { Conversation, ConversationWithState, ConversationListUpdate } from "./types";
 import { api } from "./services/api";
@@ -113,6 +114,7 @@ function App() {
   const [diffViewerTrigger, setDiffViewerTrigger] = useState(0);
   const [modelsModalOpen, setModelsModalOpen] = useState(false);
   const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
+  const [costDashboardOpen, setCostDashboardOpen] = useState(false);
   const [modelsRefreshTrigger, setModelsRefreshTrigger] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -483,6 +485,7 @@ function App() {
           onConversationRenamed={handleConversationRenamed}
           subagentUpdate={subagentUpdate}
           subagentStateUpdate={subagentStateUpdate}
+          onShowCostDashboard={() => setCostDashboardOpen(true)}
         />
 
         {/* Main chat interface */}
@@ -550,6 +553,11 @@ function App() {
         <NotificationsModal
           isOpen={notificationsModalOpen}
           onClose={() => setNotificationsModalOpen(false)}
+        />
+
+        <CostDashboard
+          isOpen={costDashboardOpen}
+          onClose={() => setCostDashboardOpen(false)}
         />
 
         {/* Backdrop for mobile drawer */}

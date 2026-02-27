@@ -352,6 +352,32 @@ class ApiService {
     }
     return response.json();
   }
+  async getUsage(since: string): Promise<{
+    by_date: Array<{
+      date: string;
+      model: string | null;
+      message_count: number;
+      total_input_tokens: number;
+      total_output_tokens: number;
+      total_cost_usd: number;
+    }>;
+    by_conversation: Array<{
+      conversation_id: string;
+      slug: string | null;
+      model: string | null;
+      message_count: number;
+      total_input_tokens: number;
+      total_output_tokens: number;
+      total_cost_usd: number;
+    }>;
+    total_cost_usd: number;
+  }> {
+    const response = await fetch(`${this.baseUrl}/usage?since=${since}`);
+    if (!response.ok) {
+      throw new Error(`Failed to get usage: ${response.statusText}`);
+    }
+    return response.json();
+  }
 }
 
 export const api = new ApiService();

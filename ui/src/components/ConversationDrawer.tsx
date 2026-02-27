@@ -17,6 +17,7 @@ interface ConversationDrawerProps {
   onConversationRenamed?: (conversation: Conversation) => void;
   subagentUpdate?: Conversation | null; // When a subagent is created/updated
   subagentStateUpdate?: { conversation_id: string; working: boolean } | null; // When a subagent's working state changes
+  onShowCostDashboard?: () => void;
 }
 
 function ConversationDrawer({
@@ -34,6 +35,7 @@ function ConversationDrawer({
   onConversationRenamed,
   subagentUpdate,
   subagentStateUpdate,
+  onShowCostDashboard,
 }: ConversationDrawerProps) {
   const [showArchived, setShowArchived] = useState(false);
   const [archivedConversations, setArchivedConversations] = useState<Conversation[]>([]);
@@ -638,13 +640,13 @@ function ConversationDrawer({
           )}
         </div>
 
-        {/* Footer with archived toggle */}
-        <div className="drawer-footer">
+        {/* Footer with archived toggle and cost dashboard */}
+        <div className="drawer-footer" style={{ display: "flex", gap: "0.5rem" }}>
           <button
             onClick={() => setShowArchived(!showArchived)}
             className="btn-secondary"
             style={{
-              width: "100%",
+              flex: 1,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -675,6 +677,34 @@ function ConversationDrawer({
             </svg>
             <span>{showArchived ? "Back to Conversations" : "View Archived"}</span>
           </button>
+          {onShowCostDashboard && (
+            <button
+              onClick={onShowCostDashboard}
+              className="btn-secondary"
+              title="Usage & Costs"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "0.5rem",
+              }}
+            >
+              <svg
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
     </>

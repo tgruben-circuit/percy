@@ -616,8 +616,8 @@ function TerminalInstanceWithRegistry({
 
     const xterm = new Terminal({
       cursorBlink: true,
-      fontSize: 13,
-      fontFamily: 'Consolas, "Liberation Mono", Menlo, Courier, monospace',
+      fontSize: 20,
+      fontFamily: '"MesloGS Nerd Font Mono", Consolas, "Liberation Mono", Menlo, Courier, monospace',
       theme: getTerminalTheme(isDark),
       scrollback: 10000,
     });

@@ -4279,6 +4279,33 @@ svg {
   color: var(--text-primary);
 }
 
+/* Cost Dashboard Table */
+.cost-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cost-table th,
+.cost-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.cost-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cost-table tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
 /* Version Checker Styles */
 .version-update-dot {
   position: absolute;
