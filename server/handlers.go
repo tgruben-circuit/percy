@@ -543,6 +543,9 @@ func (s *Server) conversationMux() *http.ServeMux {
 	mux.HandleFunc("GET /{id}/export", func(w http.ResponseWriter, r *http.Request) {
 		s.handleExportConversation(w, r)
 	})
+	mux.HandleFunc("GET /{id}/files", func(w http.ResponseWriter, r *http.Request) {
+		s.handleTouchedFiles(w, r)
+	})
 	return mux
 }
 
