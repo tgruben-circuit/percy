@@ -546,6 +546,12 @@ func (s *Server) conversationMux() *http.ServeMux {
 	mux.HandleFunc("GET /{id}/files", func(w http.ResponseWriter, r *http.Request) {
 		s.handleTouchedFiles(w, r)
 	})
+	mux.HandleFunc("POST /{id}/edit", func(w http.ResponseWriter, r *http.Request) {
+		s.handleEditMessage(w, r, r.PathValue("id"))
+	})
+	mux.HandleFunc("POST /{id}/regenerate", func(w http.ResponseWriter, r *http.Request) {
+		s.handleRegenerateMessage(w, r, r.PathValue("id"))
+	})
 	return mux
 }
 

@@ -695,6 +695,18 @@ func (cm *ConversationManager) CancelConversation(ctx context.Context) error {
 	return nil
 }
 
+// ResetLoop nils out the loop so the next AcceptUserMessage recreates it
+// with fresh history from the database. Use after deleting messages.
+func (cm *ConversationManager) ResetLoop() {
+	cm.mu.Lock()
+	cm.loop = nil
+	cm.loopCancel = nil
+	cm.loopCtx = nil
+	cm.modelID = ""
+	cm.hydrated = false
+	cm.mu.Unlock()
+}
+
 // GitInfoUserData is the structured data stored in user_data for gitinfo messages.
 type GitInfoUserData struct {
 	Worktree string `json:"worktree"`
