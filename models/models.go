@@ -26,6 +26,7 @@ const (
 	ProviderFireworks Provider = "fireworks"
 	ProviderGemini    Provider = "gemini"
 	ProviderBuiltIn   Provider = "builtin"
+	ProviderOllama    Provider = "ollama"
 )
 
 // ModelSource describes where a model's configuration comes from
@@ -93,6 +94,8 @@ func (m Model) Source(cfg *Config) string {
 				return string(SourceGateway)
 			}
 			return "$GEMINI_API_KEY"
+		case ProviderOllama:
+			return "Ollama"
 		}
 	}
 
@@ -768,6 +771,25 @@ func (m *Manager) createServiceFromModel(model *generated.Model) llm.Service {
 			URL:    model.Endpoint,
 			Model:  model.ModelName,
 			HTTPC:  m.httpc,
+		}
+	case "ollama":
+		apiKey := model.ApiKey
+		if apiKey == "" {
+			apiKey = "ollama" // Ollama doesn't require a real API key
+		}
+		endpoint := model.Endpoint
+		if endpoint == "" {
+			endpoint = "http://localhost:11434/v1"
+		}
+		return &oai.Service{
+			APIKey:   apiKey,
+			ModelURL: endpoint,
+			Model: oai.Model{
+				ModelName: model.ModelName,
+				URL:       endpoint,
+			},
+			MaxTokens: int(model.MaxTokens),
+			HTTPC:     m.httpc,
 		}
 	default:
 		if m.logger != nil {

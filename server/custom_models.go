@@ -113,8 +113,8 @@ func (s *Server) handleCreateModel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate provider type
-	if req.ProviderType != "anthropic" && req.ProviderType != "openai" && req.ProviderType != "openai-responses" && req.ProviderType != "gemini" {
-		http.Error(w, "provider_type must be 'anthropic', 'openai', 'openai-responses', or 'gemini'", http.StatusBadRequest)
+	if req.ProviderType != "anthropic" && req.ProviderType != "openai" && req.ProviderType != "openai-responses" && req.ProviderType != "gemini" && req.ProviderType != "ollama" {
+		http.Error(w, "provider_type must be 'anthropic', 'openai', 'openai-responses', 'gemini', or 'ollama'", http.StatusBadRequest)
 		return
 	}
 
@@ -372,6 +372,19 @@ func (s *Server) handleTestModel(w http.ResponseWriter, r *http.Request) {
 	case "openai-responses":
 		service = &oai.ResponsesService{
 			APIKey: req.APIKey,
+			Model: oai.Model{
+				ModelName: req.ModelName,
+				URL:       req.Endpoint,
+			},
+		}
+	case "ollama":
+		apiKey := req.APIKey
+		if apiKey == "" {
+			apiKey = "ollama"
+		}
+		service = &oai.Service{
+			APIKey:   apiKey,
+			ModelURL: req.Endpoint,
 			Model: oai.Model{
 				ModelName: req.ModelName,
 				URL:       req.Endpoint,
