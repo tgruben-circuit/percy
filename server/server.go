@@ -435,6 +435,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /api/cluster/status", http.HandlerFunc(s.handleClusterStatus))
 
 	// Models API (dynamic list refresh)
+	mux.Handle("GET /api/usage", gzipHandler(http.HandlerFunc(s.handleUsage)))
 	mux.Handle("/api/models", http.HandlerFunc(s.handleModels))
 
 	// Skills API
