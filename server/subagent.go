@@ -24,7 +24,7 @@ func NewSubagentRunner(s *Server) *SubagentRunner {
 }
 
 // RunSubagent implements claudetool.SubagentRunner.
-func (r *SubagentRunner) RunSubagent(ctx context.Context, conversationID, prompt string, wait bool, timeout time.Duration) (string, error) {
+func (r *SubagentRunner) RunSubagent(ctx context.Context, conversationID, prompt string, wait bool, timeout time.Duration, model string) (string, error) {
 	s := r.server
 
 	// Notify the UI about the subagent conversation.
@@ -37,9 +37,11 @@ func (r *SubagentRunner) RunSubagent(ctx context.Context, conversationID, prompt
 		return "", fmt.Errorf("failed to get conversation manager: %w", err)
 	}
 
-	// Get the model ID from the server's default
-	// In predictable-only mode, use "predictable" as the model
-	modelID := s.defaultModel
+	// Use override model if provided, otherwise use server default
+	modelID := model
+	if modelID == "" {
+		modelID = s.defaultModel
+	}
 	if modelID == "" && s.predictableOnly {
 		modelID = "predictable"
 	}
@@ -47,7 +49,7 @@ func (r *SubagentRunner) RunSubagent(ctx context.Context, conversationID, prompt
 	// Get LLM service
 	llmService, err := s.llmManager.GetService(modelID)
 	if err != nil {
-		return "", fmt.Errorf("failed to get LLM service: %w", err)
+		return "", fmt.Errorf("failed to get LLM service for model %q: %w", modelID, err)
 	}
 
 	// If the subagent is currently working, stop it first before sending new message
