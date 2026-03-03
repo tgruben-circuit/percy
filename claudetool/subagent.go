@@ -16,7 +16,7 @@ type SubagentRunner interface {
 	// RunSubagent runs a subagent conversation and returns the last response.
 	// If wait is false, it starts processing in background and returns immediately.
 	// timeout is the maximum time to wait for a response.
-	RunSubagent(ctx context.Context, conversationID, prompt string, wait bool, timeout time.Duration) (string, error)
+	RunSubagent(ctx context.Context, conversationID, prompt string, wait bool, timeout time.Duration, model string) (string, error)
 }
 
 // SubagentDB is the database interface for subagent operations.
@@ -71,6 +71,10 @@ The tool returns the subagent's last response, or a status if the timeout is rea
     "wait": {
       "type": "boolean",
       "description": "Whether to wait for completion (default: true). If false, returns immediately."
+    },
+    "model": {
+      "type": "string",
+      "description": "Optional model ID to use for this subagent (e.g., 'gpt-5.3-codex'). If not provided, uses the parent conversation's model."
     }
   }
 }
@@ -82,6 +86,7 @@ type subagentInput struct {
 	Prompt         string `json:"prompt"`
 	TimeoutSeconds int    `json:"timeout_seconds,omitempty"`
 	Wait           *bool  `json:"wait,omitempty"`
+	Model          string `json:"model,omitempty"`
 }
 
 // Tool returns an llm.Tool for the subagent functionality.
@@ -134,7 +139,7 @@ func (s *SubagentTool) Run(ctx context.Context, m json.RawMessage) llm.ToolOut {
 	}
 
 	// Use the runner to execute the subagent
-	response, err := s.Runner.RunSubagent(ctx, conversationID, req.Prompt, wait, timeout)
+	response, err := s.Runner.RunSubagent(ctx, conversationID, req.Prompt, wait, timeout, req.Model)
 	if err != nil {
 		return llm.ErrorfToolOut("subagent error: %w", err)
 	}

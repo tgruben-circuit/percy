@@ -34,7 +34,22 @@ type mockSubagentRunner struct {
 	err      error
 }
 
-func (m *mockSubagentRunner) RunSubagent(ctx context.Context, conversationID, prompt string, wait bool, timeout time.Duration) (string, error) {
+func (m *mockSubagentRunner) RunSubagent(ctx context.Context, conversationID, prompt string, wait bool, timeout time.Duration, model string) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	return m.response, nil
+}
+
+// mockSubagentRunnerWithModel implements SubagentRunner and tracks the model parameter.
+type mockSubagentRunnerWithModel struct {
+	response     string
+	err          error
+	receivedModel string
+}
+
+func (m *mockSubagentRunnerWithModel) RunSubagent(ctx context.Context, conversationID, prompt string, wait bool, timeout time.Duration, model string) (string, error) {
+	m.receivedModel = model
 	if m.err != nil {
 		return "", m.err
 	}
@@ -163,4 +178,67 @@ func TestSubagentTool_Validation(t *testing.T) {
 			t.Error("expected error for invalid slug")
 		}
 	})
+}
+
+func TestSubagentTool_ModelOverride(t *testing.T) {
+	wd := NewMutableWorkingDir("/tmp")
+	db := newMockSubagentDB()
+	runner := &mockSubagentRunnerWithModel{response: "done"}
+
+	tool := &SubagentTool{
+		DB:                   db,
+		ParentConversationID: "parent-123",
+		WorkingDir:           wd,
+		Runner:               runner,
+	}
+
+	input := subagentInput{
+		Slug:   "model-test",
+		Prompt: "do something",
+		Model:  "gpt-5.3-codex",
+	}
+	inputJSON, err := json.Marshal(input)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+
+	result := tool.Run(context.Background(), inputJSON)
+	if result.Error != nil {
+		t.Fatalf("unexpected error: %v", result.Error)
+	}
+
+	if runner.receivedModel != "gpt-5.3-codex" {
+		t.Errorf("expected model 'gpt-5.3-codex', got %q", runner.receivedModel)
+	}
+}
+
+func TestSubagentTool_ModelDefaultEmpty(t *testing.T) {
+	wd := NewMutableWorkingDir("/tmp")
+	db := newMockSubagentDB()
+	runner := &mockSubagentRunnerWithModel{response: "done"}
+
+	tool := &SubagentTool{
+		DB:                   db,
+		ParentConversationID: "parent-123",
+		WorkingDir:           wd,
+		Runner:               runner,
+	}
+
+	input := subagentInput{
+		Slug:   "no-model-test",
+		Prompt: "do something",
+	}
+	inputJSON, err := json.Marshal(input)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+
+	result := tool.Run(context.Background(), inputJSON)
+	if result.Error != nil {
+		t.Fatalf("unexpected error: %v", result.Error)
+	}
+
+	if runner.receivedModel != "" {
+		t.Errorf("expected empty model, got %q", runner.receivedModel)
+	}
 }
