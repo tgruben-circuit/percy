@@ -25,6 +25,45 @@ import ThinkingContent from "./ThinkingContent";
 import UsageDetailModal from "./UsageDetailModal";
 import MessageActionBar from "./MessageActionBar";
 
+// Format a timestamp for display
+function formatTimestamp(ts: string): string {
+  const date = new Date(ts);
+  if (isNaN(date.getTime())) return "";
+  const now = new Date();
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  if (isToday) {
+    return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function MessageTimestamp({ timestamp, align }: { timestamp: string; align?: "left" | "right" }) {
+  const formatted = formatTimestamp(timestamp);
+  if (!formatted) return null;
+  return (
+    <div
+      className="message-timestamp"
+      style={{
+        fontSize: "0.7rem",
+        color: "var(--text-tertiary)",
+        marginTop: "2px",
+        paddingInline: "0.5rem",
+        textAlign: align || "left",
+      }}
+    >
+      {formatted}
+    </div>
+  );
+}
+
 // Display data types from different tools
 interface ToolDisplay {
   tool_use_id: string;
@@ -1122,6 +1161,9 @@ function Message({ message, onOpenDiffViewer, onCommentTextChange, onFork, onEdi
             <div key={index}>{renderContent(content)}</div>
           ))}
         </div>
+        {isUser && message.created_at && (
+          <MessageTimestamp timestamp={message.created_at} align="right" />
+        )}
       </div>
       {showUsageModal && usage && (
         <UsageDetailModal
