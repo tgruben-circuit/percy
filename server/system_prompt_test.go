@@ -6,7 +6,20 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestSystemPromptIncludesCurrentDate(t *testing.T) {
+	prompt, err := GenerateSystemPrompt("")
+	if err != nil {
+		t.Fatalf("GenerateSystemPrompt failed: %v", err)
+	}
+
+	today := time.Now().Format("2006-01-02")
+	if !strings.Contains(prompt, "Current date: "+today) {
+		t.Errorf("system prompt should contain 'Current date: %s'", today)
+	}
+}
 
 // TestSystemPromptIncludesCwdGuidanceFiles verifies that AGENTS.md from the working directory
 // is included in the generated system prompt.

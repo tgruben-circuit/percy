@@ -7,6 +7,8 @@ Key constraints:
 - Be concise in your final response - summarize what you did and the outcome
 - If you encounter blocking issues, explain them clearly so the parent can help
 
+Current date: {{.CurrentDate}}
+
 Working directory: {{.WorkingDirectory}}
 
 <tool_usage>

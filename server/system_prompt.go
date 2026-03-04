@@ -24,6 +24,7 @@ var subagentSystemPromptTemplate string
 // SystemPromptData contains all the data needed to render the system prompt template
 type SystemPromptData struct {
 	WorkingDirectory string
+	CurrentDate      string // Today's date in YYYY-MM-DD format
 	GitInfo          *GitInfo
 	Codebase         *CodebaseInfo
 	IsExeDev         bool
@@ -80,6 +81,7 @@ func collectSystemData(workingDir string) (*SystemPromptData, error) {
 
 	data := &SystemPromptData{
 		WorkingDirectory: wd,
+		CurrentDate:      time.Now().Format("2006-01-02"),
 	}
 
 	// Try to collect git info
@@ -373,6 +375,7 @@ func isSudoAvailable() bool {
 // SubagentSystemPromptData contains data for subagent system prompts (minimal subset)
 type SubagentSystemPromptData struct {
 	WorkingDirectory string
+	CurrentDate      string // Today's date in YYYY-MM-DD format
 	GitInfo          *GitInfo
 }
 
@@ -389,6 +392,7 @@ func GenerateSubagentSystemPrompt(workingDir string) (string, error) {
 
 	data := &SubagentSystemPromptData{
 		WorkingDirectory: wd,
+		CurrentDate:      time.Now().Format("2006-01-02"),
 	}
 
 	// Try to collect git info
