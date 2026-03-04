@@ -189,7 +189,7 @@ func (b *BashTool) Run(ctx context.Context, m json.RawMessage) llm.ToolOut {
 
 	// Add co-author trailer to git commits unless user has disabled it
 	if !b.isNoTrailerSet() {
-		req.Command = bashkit.AddCoauthorTrailer(req.Command, "Co-authored-by: Percy <percy@tgruben-circuit.dev>")
+		req.Command = bashkit.AddCoauthorTrailer(req.Command, "Co-authored-by: Percy 🤖")
 	}
 
 	timeout := req.timeout(b.Timeouts)
