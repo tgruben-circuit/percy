@@ -36,10 +36,6 @@ type batchReq struct {
 	Engrams []engram `json:"engrams"`
 }
 
-type batchResp struct {
-	IDs []string `json:"ids"`
-}
-
 func main() {
 	dbPath := flag.String("db", "", "path to memory.db (required)")
 	url := flag.String("url", "http://192.168.1.67:8475", "MuninnDB server URL")
@@ -124,49 +120,78 @@ func main() {
 		return
 	}
 
-	// Send in batches of 50
+	// Send in size-limited batches (MuninnDB has a ~64KB request body limit).
+	const maxBatchBytes = 60_000 // leave headroom under 64KB
 	client := &http.Client{Timeout: 30 * time.Second}
 	total := 0
-	for i := 0; i < len(engrams); i += 50 {
-		end := i + 50
-		if end > len(engrams) {
-			end = len(engrams)
-		}
-		batch := engrams[i:end]
-
-		body, err := json.Marshal(batchReq{Engrams: batch})
-		if err != nil {
-			log.Fatalf("marshal batch: %v", err)
-		}
-
-		req, err := http.NewRequest("POST", *url+"/api/engrams/batch", bytes.NewReader(body))
-		if err != nil {
-			log.Fatalf("create request: %v", err)
-		}
-		req.Header.Set("Content-Type", "application/json")
-		if *token != "" {
-			req.Header.Set("Authorization", "Bearer "+*token)
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Fatalf("POST /api/engrams/batch: %v", err)
-		}
-		if resp.StatusCode >= 300 {
-			respBody, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
-			log.Fatalf("MuninnDB returned %d: %s", resp.StatusCode, respBody)
-		}
-
-		var result batchResp
-		json.NewDecoder(resp.Body).Decode(&result)
-		resp.Body.Close()
-
-		total += len(result.IDs)
-		log.Printf("batch %d-%d: wrote %d engrams", i+1, end, len(result.IDs))
+	for batches := makeBatches(engrams, maxBatchBytes); len(batches) > 0; batches = batches[1:] {
+		batch := batches[0]
+		count := sendBatch(client, *url, *token, batch)
+		total += count
+		log.Printf("batch: wrote %d engrams", count)
 	}
 
 	log.Printf("backfill complete: %d engrams written to %s vault=%s", total, *url, *vault)
+}
+
+// makeBatches splits engrams into batches where each batch's JSON is under maxBytes.
+func makeBatches(engrams []engram, maxBytes int) [][]engram {
+	var batches [][]engram
+	var current []engram
+	currentSize := len(`{"engrams":[]}`) // base JSON overhead
+
+	for _, e := range engrams {
+		eBytes, _ := json.Marshal(e)
+		eSize := len(eBytes) + 1 // +1 for comma separator
+
+		if len(current) > 0 && currentSize+eSize > maxBytes {
+			batches = append(batches, current)
+			current = nil
+			currentSize = len(`{"engrams":[]}`)
+		}
+		current = append(current, e)
+		currentSize += eSize
+	}
+	if len(current) > 0 {
+		batches = append(batches, current)
+	}
+	return batches
+}
+
+func sendBatch(client *http.Client, baseURL, token string, batch []engram) int {
+	body, err := json.Marshal(batchReq{Engrams: batch})
+	if err != nil {
+		log.Fatalf("marshal batch: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", baseURL+"/api/engrams/batch", bytes.NewReader(body))
+	if err != nil {
+		log.Fatalf("create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalf("POST /api/engrams/batch: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		log.Fatalf("MuninnDB returned %d: %s", resp.StatusCode, respBody)
+	}
+
+	// Response format: {"results":[{"index":0,"id":"...","status":"ok"},...]}
+	var result struct {
+		Results []struct {
+			ID string `json:"id"`
+		} `json:"results"`
+	}
+	json.NewDecoder(resp.Body).Decode(&result)
+	return len(result.Results)
 }
 
 // toISO8601 converts SQLite datetime ("2026-02-17 14:10:10") to ISO 8601 ("2026-02-17T14:10:10Z").
