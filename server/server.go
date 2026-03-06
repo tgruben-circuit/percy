@@ -25,6 +25,7 @@ import (
 	"github.com/tgruben-circuit/percy/db/generated"
 	"github.com/tgruben-circuit/percy/llm"
 	"github.com/tgruben-circuit/percy/memory"
+	"github.com/tgruben-circuit/percy/memory/muninn"
 	"github.com/tgruben-circuit/percy/models"
 	"github.com/tgruben-circuit/percy/server/notifications"
 	"github.com/tgruben-circuit/percy/ui"
@@ -234,6 +235,7 @@ type Server struct {
 	conversationGroup   singleflight.Group[string, *ConversationManager]
 	versionChecker      *VersionChecker
 	notifDispatcher     *notifications.Dispatcher
+	muninnSink          *muninn.Sink
 	clusterNode         *cluster.Node
 	shutdownCh          chan struct{} // Signals background routines to stop
 	indexQueue          chan string   // Buffered queue for conversation IDs to index
@@ -284,6 +286,11 @@ func (s *Server) SetEmbedder(e memory.Embedder) {
 func (s *Server) SetClusterNode(node *cluster.Node) {
 	s.clusterNode = node
 	s.toolSetConfig.ClusterNode = node
+}
+
+// SetMuninnSink sets the MuninnDB sink for dual-writing memory cells.
+func (s *Server) SetMuninnSink(sink *muninn.Sink) {
+	s.muninnSink = sink
 }
 
 // EnqueueIndex enqueues a conversation ID for memory indexing.
@@ -392,6 +399,27 @@ func (s *Server) indexConversation(conversationID string) {
 	}
 
 	s.logger.Info("Indexed conversation for memory search", "conversationID", conversationID, "messages", len(messages), "slug", slug)
+
+	// Push to MuninnDB if configured
+	if s.muninnSink != nil {
+		var cells []muninn.CellEngram
+		for _, msg := range messages {
+			cells = append(cells, muninn.CellEngram{
+				Concept: slug,
+				Content: msg.Text,
+				Tags:    []string{msg.Role},
+			})
+		}
+		go func() {
+			pushCtx, pushCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer pushCancel()
+			if err := s.muninnSink.Push(pushCtx, conversationID, slug, cells); err != nil {
+				s.logger.Warn("MuninnDB push failed", "error", err, "conversation", conversationID)
+			} else {
+				s.logger.Info("Pushed to MuninnDB", "conversation", conversationID, "cells", len(cells))
+			}
+		}()
+	}
 }
 
 // RegisterNotificationChannel adds a backend notification channel to the dispatcher.

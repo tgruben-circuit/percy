@@ -16,6 +16,7 @@ import (
 	"github.com/tgruben-circuit/percy/claudetool"
 	memtool "github.com/tgruben-circuit/percy/claudetool/memory"
 	"github.com/tgruben-circuit/percy/cluster"
+	"github.com/tgruben-circuit/percy/memory/muninn"
 	"github.com/tgruben-circuit/percy/db"
 	"github.com/tgruben-circuit/percy/memory"
 	"github.com/tgruben-circuit/percy/models"
@@ -171,6 +172,22 @@ func runServe(global GlobalConfig, args []string) {
 	// Pass memory DB and embedder to server for post-conversation indexing
 	svr.SetMemoryDB(memoryDB)
 	svr.SetEmbedder(embedder)
+
+	// MuninnDB augmentation (optional)
+	if muninnURL := os.Getenv("PERCY_MUNINN_URL"); muninnURL != "" {
+		vault := os.Getenv("PERCY_MUNINN_VAULT")
+		if vault == "" {
+			vault = "percy"
+		}
+		token := os.Getenv("PERCY_MUNINN_TOKEN")
+		muninnClient := muninn.NewClient(muninnURL, vault, token)
+		if muninnClient.Healthy(context.Background()) {
+			svr.SetMuninnSink(muninn.NewSink(muninnClient))
+			logger.Info("MuninnDB connected", "url", muninnURL, "vault", vault)
+		} else {
+			logger.Warn("MuninnDB unreachable, running without augmentation", "url", muninnURL)
+		}
+	}
 
 	// Seed notification channels from config file if DB is empty (one-time migration)
 	svr.SeedNotificationChannelsFromConfig(llmConfig.NotificationChannels)
