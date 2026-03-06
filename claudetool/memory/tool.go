@@ -8,6 +8,7 @@ import (
 
 	"github.com/tgruben-circuit/percy/llm"
 	memdb "github.com/tgruben-circuit/percy/memory"
+	"github.com/tgruben-circuit/percy/memory/muninn"
 )
 
 const (
@@ -48,13 +49,14 @@ type searchInput struct {
 
 // MemorySearchTool provides semantic search over past conversations and files.
 type MemorySearchTool struct {
-	db       *memdb.DB
-	embedder memdb.Embedder
+	db           *memdb.DB
+	embedder     memdb.Embedder
+	muninnSource *muninn.Source
 }
 
 // NewMemorySearchTool creates a new memory search tool.
-func NewMemorySearchTool(db *memdb.DB, embedder memdb.Embedder) *MemorySearchTool {
-	return &MemorySearchTool{db: db, embedder: embedder}
+func NewMemorySearchTool(db *memdb.DB, embedder memdb.Embedder, muninnSource *muninn.Source) *MemorySearchTool {
+	return &MemorySearchTool{db: db, embedder: embedder, muninnSource: muninnSource}
 }
 
 // Tool returns the llm.Tool definition for memory search.
@@ -103,6 +105,13 @@ func (t *MemorySearchTool) Run(ctx context.Context, input json.RawMessage) llm.T
 		return llm.ErrorfToolOut("memory search failed: %w", err)
 	}
 
+	if t.muninnSource != nil {
+		muninnResults, err := t.muninnSource.Search(ctx, in.Query, in.Limit)
+		if err == nil {
+			results = append(results, muninnResults...)
+		}
+	}
+
 	// Filter by detail level.
 	if in.DetailLevel == "summary" {
 		var summaryOnly []memdb.MemoryResult
@@ -134,6 +143,8 @@ func formatMemoryResults(results []memdb.MemoryResult) string {
 			fmt.Fprintf(&b, "--- Topic Summary: %q (updated %s) ---\n%s\n\n", r.TopicName, r.UpdatedAt, r.Content)
 		case "cell":
 			fmt.Fprintf(&b, "--- Result %d [%s] (score: %.2f, salience: %.1f) ---\n%s\n\n", i+1, r.CellType, r.Score, r.Salience, r.Content)
+		case "muninn":
+			fmt.Fprintf(&b, "--- Muninn Memory: %q (score: %.2f) ---\n%s\n\n", r.TopicName, r.Score, r.Content)
 		}
 	}
 	return b.String()

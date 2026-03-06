@@ -161,9 +161,30 @@ func runServe(global GlobalConfig, args []string) {
 		}
 	}
 
+	// MuninnDB augmentation (optional)
+	var muninnClient *muninn.Client
+	if muninnURL := os.Getenv("PERCY_MUNINN_URL"); muninnURL != "" {
+		vault := os.Getenv("PERCY_MUNINN_VAULT")
+		if vault == "" {
+			vault = "percy"
+		}
+		token := os.Getenv("PERCY_MUNINN_TOKEN")
+		muninnClient = muninn.NewClient(muninnURL, vault, token)
+		if !muninnClient.Healthy(context.Background()) {
+			logger.Warn("MuninnDB unreachable, running without augmentation", "url", muninnURL)
+			muninnClient = nil
+		} else {
+			logger.Info("MuninnDB connected", "url", muninnURL, "vault", vault)
+		}
+	}
+
 	// Wire up memory search tool if memory DB is available
 	if memoryDB != nil {
-		toolSetConfig.MemorySearchTool = memtool.NewMemorySearchTool(memoryDB, embedder).Tool()
+		var src *muninn.Source
+		if muninnClient != nil {
+			src = muninn.NewSource(muninnClient)
+		}
+		toolSetConfig.MemorySearchTool = memtool.NewMemorySearchTool(memoryDB, embedder, src).Tool()
 	}
 
 	// Create server
@@ -173,20 +194,9 @@ func runServe(global GlobalConfig, args []string) {
 	svr.SetMemoryDB(memoryDB)
 	svr.SetEmbedder(embedder)
 
-	// MuninnDB augmentation (optional)
-	if muninnURL := os.Getenv("PERCY_MUNINN_URL"); muninnURL != "" {
-		vault := os.Getenv("PERCY_MUNINN_VAULT")
-		if vault == "" {
-			vault = "percy"
-		}
-		token := os.Getenv("PERCY_MUNINN_TOKEN")
-		muninnClient := muninn.NewClient(muninnURL, vault, token)
-		if muninnClient.Healthy(context.Background()) {
-			svr.SetMuninnSink(muninn.NewSink(muninnClient))
-			logger.Info("MuninnDB connected", "url", muninnURL, "vault", vault)
-		} else {
-			logger.Warn("MuninnDB unreachable, running without augmentation", "url", muninnURL)
-		}
+	// Set MuninnDB sink if client is available
+	if muninnClient != nil {
+		svr.SetMuninnSink(muninn.NewSink(muninnClient))
 	}
 
 	// Seed notification channels from config file if DB is empty (one-time migration)

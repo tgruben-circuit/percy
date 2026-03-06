@@ -42,7 +42,7 @@ func TestMemorySearchTool(t *testing.T) {
 		}
 	}
 
-	tool := NewMemorySearchTool(db, nil)
+	tool := NewMemorySearchTool(db, nil, nil)
 	input, err := json.Marshal(searchInput{Query: "authentication"})
 	if err != nil {
 		t.Fatalf("Failed to marshal input: %v", err)
@@ -70,7 +70,7 @@ func TestMemorySearchTool(t *testing.T) {
 }
 
 func TestMemorySearchToolNoDatabase(t *testing.T) {
-	tool := NewMemorySearchTool(nil, nil)
+	tool := NewMemorySearchTool(nil, nil, nil)
 	input, err := json.Marshal(searchInput{Query: "anything"})
 	if err != nil {
 		t.Fatalf("Failed to marshal input: %v", err)
@@ -97,7 +97,7 @@ func TestMemorySearchToolEmptyResults(t *testing.T) {
 	}
 	defer db.Close()
 
-	tool := NewMemorySearchTool(db, nil)
+	tool := NewMemorySearchTool(db, nil, nil)
 	input, err := json.Marshal(searchInput{Query: "nonexistent"})
 	if err != nil {
 		t.Fatalf("Failed to marshal input: %v", err)
@@ -134,7 +134,7 @@ func TestMemorySearchToolSummaryOnly(t *testing.T) {
 		Content: "We decided to use JWT",
 	})
 
-	tool := NewMemorySearchTool(db, nil)
+	tool := NewMemorySearchTool(db, nil, nil)
 	input, _ := json.Marshal(searchInput{Query: "authentication", DetailLevel: "summary"})
 	result := tool.Run(context.Background(), input)
 
