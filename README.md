@@ -55,6 +55,22 @@ When a conversation gets long, Percy can distill it into an operational brief an
 ./bin/percy tui --server http://myhost:8080  # custom server URL
 ```
 
+### MuninnDB Augmentation (Optional)
+
+Percy can optionally push memories to a [MuninnDB](https://github.com/scrypster/muninndb) server and include its context-aware activations in search results. This enables cross-agent memory sharing on a LAN — what one Percy instance learns becomes available to all others. MuninnDB adds temporal decay (recently-used memories rank higher), Hebbian association (co-retrieved memories form automatic links), and predictive activation on top of Percy's local FTS5 search.
+
+```bash
+# Start MuninnDB (Docker)
+docker run -d --name muninndb -p 8475:8475 ghcr.io/scrypster/muninndb:latest
+
+# Configure Percy
+export PERCY_MUNINN_URL=http://192.168.1.67:8475
+export PERCY_MUNINN_VAULT=percy        # optional, default: percy
+export PERCY_MUNINN_TOKEN=your-token   # optional, default: empty
+```
+
+Local SQLite memory remains primary. MuninnDB is additive — if unreachable, Percy operates normally.
+
 ### Notification Channels
 
 Get notified when the agent finishes work. Supports Discord webhooks and email, with a test endpoint to verify connectivity. Channels are configurable via the API and persist in the database.

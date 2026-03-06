@@ -63,6 +63,7 @@ subpub/               Pub/sub for SSE real-time updates
 ui/                   React/TypeScript frontend (esbuild, pnpm)
 tui/                  Bubble Tea terminal UI — pure HTTP/SSE client (no server imports)
 templates/            Project boilerplate templates (packaged as .tar.gz)
+memory/muninn/        Optional MuninnDB REST client for cross-agent memory augmentation
 ```
 
 ### Request flow
