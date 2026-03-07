@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { linkifyText } from "../utils/linkify";
+import { formatTextWithTables } from "../utils/markdownTable";
 import {
   Message as MessageType,
   LLMMessage,
@@ -554,7 +554,7 @@ function Message({ message, onOpenDiffViewer, onCommentTextChange, onFork, onEdi
         );
       case "text":
         return (
-          <div className="whitespace-pre-wrap break-words">{linkifyText(content.Text || "")}</div>
+          <div className="whitespace-pre-wrap break-words">{formatTextWithTables(content.Text || "")}</div>
         );
       case "tool_use":
         // IMPORTANT: When adding a new tool component here, also add it to:

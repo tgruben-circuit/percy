@@ -4306,6 +4306,50 @@ svg {
   background: var(--bg-tertiary);
 }
 
+/* Markdown Table Rendering */
+.md-table-wrapper {
+  overflow-x: auto;
+  margin: 0.5rem 0;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+}
+
+.md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.md-table th,
+.md-table td {
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.md-table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  background: var(--bg-tertiary);
+  border-bottom: 2px solid var(--border);
+}
+
+.md-table td {
+  color: var(--text-primary);
+  font-family: var(--font-mono, 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace);
+  font-size: 0.8rem;
+}
+
+.md-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.md-table tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
 /* Version Checker Styles */
 .version-update-dot {
   position: absolute;
