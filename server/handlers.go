@@ -525,6 +525,9 @@ func (s *Server) conversationMux() *http.ServeMux {
 	mux.HandleFunc("POST /{id}/cancel", func(w http.ResponseWriter, r *http.Request) {
 		s.handleCancelConversation(w, r, r.PathValue("id"))
 	})
+	mux.HandleFunc("POST /{id}/switch-model", func(w http.ResponseWriter, r *http.Request) {
+		s.handleSwitchModelConversation(w, r, r.PathValue("id"))
+	})
 	mux.HandleFunc("POST /{id}/archive", func(w http.ResponseWriter, r *http.Request) {
 		s.handleArchiveConversation(w, r, r.PathValue("id"))
 	})
@@ -601,6 +604,11 @@ type ChatRequest struct {
 	Message string `json:"message"`
 	Model   string `json:"model,omitempty"`
 	Cwd     string `json:"cwd,omitempty"`
+}
+
+type SwitchModelRequest struct {
+	Model             string `json:"model"`
+	CancelCurrentTurn bool   `json:"cancel_current_turn"`
 }
 
 // handleChatConversation handles POST /api/conversation/<id>/chat
@@ -1010,6 +1018,50 @@ func (s *Server) handleCancelConversation(w http.ResponseWriter, r *http.Request
 	s.logger.Info("Conversation cancelled", "conversationID", conversationID)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "cancelled"}) //nolint:errchkjson // best-effort HTTP response
+}
+
+func (s *Server) handleSwitchModelConversation(w http.ResponseWriter, r *http.Request, conversationID string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req SwitchModelRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	if req.Model == "" {
+		http.Error(w, "Model is required", http.StatusBadRequest)
+		return
+	}
+
+	service, err := s.llmManager.GetService(req.Model)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Unsupported model: %s", req.Model), http.StatusBadRequest)
+		return
+	}
+
+	manager, err := s.getOrCreateConversationManager(r.Context(), conversationID)
+	if err != nil {
+		s.logger.Error("Failed to get conversation manager", "conversationID", conversationID, "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := manager.SwitchModel(r.Context(), service, req.Model, req.CancelCurrentTurn); err != nil {
+		if errors.Is(err, errSwitchModelConflict) {
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		}
+		s.logger.Error("Failed to switch model", "conversationID", conversationID, "model", req.Model, "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "model": req.Model}) //nolint:errchkjson // best-effort HTTP response
 }
 
 // handleStreamConversation handles GET /api/conversation/<id>/stream

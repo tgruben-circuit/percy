@@ -375,6 +375,14 @@ func (db *DB) UpdateConversationModel(ctx context.Context, conversationID, model
 	})
 }
 
+// SetConversationModel force-sets the model for a conversation.
+func (db *DB) SetConversationModel(ctx context.Context, conversationID, model string) error {
+	return db.pool.Tx(ctx, func(ctx context.Context, tx *Tx) error {
+		_, err := tx.Conn().ExecContext(ctx, "UPDATE conversations SET model = ? WHERE conversation_id = ?", model, conversationID)
+		return err
+	})
+}
+
 // Message methods (moved from MessageService)
 
 // MessageType represents the type of message

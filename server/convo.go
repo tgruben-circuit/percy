@@ -22,6 +22,7 @@ import (
 )
 
 var errConversationModelMismatch = errors.New("conversation model mismatch")
+var errSwitchModelConflict = errors.New("cannot switch models while conversation is active without cancel_current_turn=true")
 
 // ConversationManager manages a single active conversation
 type ConversationManager struct {
@@ -556,6 +557,66 @@ func (cm *ConversationManager) stopLoop() {
 	if toolSet != nil {
 		toolSet.Cleanup()
 	}
+}
+
+func (cm *ConversationManager) SwitchModel(ctx context.Context, service llm.Service, modelID string, cancelCurrentTurn bool) error {
+	if service == nil {
+		return fmt.Errorf("llm service is required")
+	}
+	if modelID == "" {
+		return fmt.Errorf("model is required")
+	}
+	if err := cm.Hydrate(ctx); err != nil {
+		return err
+	}
+
+	cm.mu.Lock()
+	active := cm.loop != nil && cm.agentWorking
+	currentModel := cm.modelID
+	cm.mu.Unlock()
+
+	if currentModel == modelID {
+		return nil
+	}
+	if active && !cancelCurrentTurn {
+		return errSwitchModelConflict
+	}
+	if active {
+		if err := cm.CancelConversation(ctx); err != nil {
+			return err
+		}
+	} else {
+		cm.mu.Lock()
+		hasLoop := cm.loop != nil
+		cm.mu.Unlock()
+		if hasLoop {
+			cm.stopLoop()
+		}
+	}
+
+	if err := cm.ensureLoop(service, modelID); err != nil {
+		return err
+	}
+	if err := cm.db.SetConversationModel(ctx, cm.conversationID, modelID); err != nil {
+		return fmt.Errorf("failed to persist switched model: %w", err)
+	}
+
+	cm.mu.Lock()
+	cm.modelID = modelID
+	onStateChange := cm.onStateChange
+	working := cm.agentWorking
+	conversationID := cm.conversationID
+	cm.mu.Unlock()
+
+	if onStateChange != nil {
+		onStateChange(ConversationState{
+			ConversationID: conversationID,
+			Working:        working,
+			Model:          modelID,
+		})
+	}
+
+	return nil
 }
 
 // CancelConversation cancels the current conversation loop and records a cancelled tool result if a tool was in progress
