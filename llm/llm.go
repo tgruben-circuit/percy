@@ -123,6 +123,13 @@ type Tool struct {
 	// Cache indicates whether to use prompt caching for this tool
 	Cache bool
 
+	// Deferred indicates this tool should not be sent to the LLM until explicitly activated.
+	// Deferred tools are loaded on-demand via the request_tools meta-tool.
+	Deferred bool
+	// Category groups deferred tools for activation. Tools with the same category
+	// are activated together. Empty category means the tool is always active (core).
+	Category string
+
 	// The Run function is automatically called when the tool is used.
 	// Run functions may be called concurrently with each other and themselves.
 	// The input to Run function is the input to the tool, as provided by Claude, in compliance with the input schema.
