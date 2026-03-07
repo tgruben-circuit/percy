@@ -91,11 +91,6 @@ type ToolSet struct {
 	requestTools *RequestToolsTool
 }
 
-// Tools returns all tools in this set (alias for AllTools).
-func (ts *ToolSet) Tools() []*llm.Tool {
-	return ts.AllTools()
-}
-
 // AllTools returns all tools including deferred ones.
 func (ts *ToolSet) AllTools() []*llm.Tool {
 	return ts.tools

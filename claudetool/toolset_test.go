@@ -65,7 +65,7 @@ func TestToolSet_Tools(t *testing.T) {
 	ctx := context.Background()
 	ts := NewToolSet(ctx, cfg)
 
-	tools := ts.Tools()
+	tools := ts.AllTools()
 	if tools == nil {
 		t.Fatal("Tools() returned nil")
 	}
@@ -164,7 +164,7 @@ func TestNewToolSet_SubagentDepthLimit(t *testing.T) {
 	runner := &mockSubagentRunner{response: "ok"}
 
 	hasSubagentTool := func(ts *ToolSet) bool {
-		for _, tool := range ts.Tools() {
+		for _, tool := range ts.AllTools() {
 			if tool.Name == "subagent" {
 				return true
 			}
@@ -350,8 +350,8 @@ func TestToolSet_DeferredTools(t *testing.T) {
 	}
 
 	// Verify Tools() is alias for AllTools()
-	if len(ts.Tools()) != len(allTools) {
-		t.Errorf("Tools() (%d) should equal AllTools() (%d)", len(ts.Tools()), len(allTools))
+	if len(ts.AllTools()) != len(allTools) {
+		t.Errorf("Tools() (%d) should equal AllTools() (%d)", len(ts.AllTools()), len(allTools))
 	}
 }
 
