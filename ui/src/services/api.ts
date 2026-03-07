@@ -10,6 +10,13 @@ import {
   CommitInfo,
 } from "../types";
 
+export class ApiError extends Error {
+  constructor(message: string, public readonly status?: number) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 class ApiService {
   private baseUrl = "/api";
 
@@ -122,6 +129,23 @@ class ApiService {
     if (!response.ok) {
       throw new Error(`Failed to send message: ${response.statusText}`);
     }
+  }
+
+  async switchConversationModel(
+    conversationId: string,
+    model: string,
+    cancelCurrentTurn = false,
+  ): Promise<{ status: string; model: string }> {
+    const response = await fetch(`${this.baseUrl}/conversation/${conversationId}/switch-model`, {
+      method: "POST",
+      headers: this.postHeaders,
+      body: JSON.stringify({ model, cancel_current_turn: cancelCurrentTurn }),
+    });
+    if (!response.ok) {
+      const text = (await response.text()).trim();
+      throw new ApiError(text || `Failed to switch model: ${response.statusText}`, response.status);
+    }
+    return response.json();
   }
 
   createMessageStream(conversationId: string, lastSequenceId?: number): EventSource {

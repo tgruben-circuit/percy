@@ -7,7 +7,7 @@ import {
   ConversationListUpdate,
   isDistillStatusMessage,
 } from "../types";
-import { api } from "../services/api";
+import { api, ApiError } from "../services/api";
 import { ThemeMode, getStoredTheme, setStoredTheme, applyTheme } from "../services/theme";
 import { setFaviconStatus } from "../services/favicon";
 import {
@@ -538,6 +538,8 @@ function ChatInterface({
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [switchingModel, setSwitchingModel] = useState(false);
+  const [pendingSwitchModel, setPendingSwitchModel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [models, setModels] = useState<
     Array<{
@@ -571,6 +573,46 @@ function ChatInterface({
   const setSelectedModel = (model: string) => {
     setSelectedModelState(model);
     localStorage.setItem("percy_selected_model", model);
+  };
+
+  const switchConversationModel = async (model: string, cancelCurrentTurn: boolean) => {
+    if (!conversationId) {
+      setSelectedModel(model);
+      return;
+    }
+
+    try {
+      setSwitchingModel(true);
+      setError(null);
+      await api.switchConversationModel(conversationId, model, cancelCurrentTurn);
+      setSelectedModel(model);
+      setPendingSwitchModel(null);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409 && !cancelCurrentTurn) {
+        setPendingSwitchModel(model);
+        setError(`Model switch to ${model} requires stopping the active turn. Switch & stop?`);
+        return;
+      }
+      console.error("Failed to switch model:", err);
+      setPendingSwitchModel(null);
+      setError(err instanceof Error ? err.message : "Failed to switch model");
+    } finally {
+      setSwitchingModel(false);
+    }
+  };
+
+  const handleModelSelection = async (model: string) => {
+    if (model === selectedModel) {
+      return;
+    }
+    await switchConversationModel(model, false);
+  };
+
+  const handleConfirmSwitchAndStop = async () => {
+    if (!pendingSwitchModel) {
+      return;
+    }
+    await switchConversationModel(pendingSwitchModel, true);
   };
   const [selectedCwd, setSelectedCwdState] = useState<string>("");
   const [cwdInitialized, setCwdInitialized] = useState(false);
@@ -1157,6 +1199,8 @@ function ChatInterface({
 
   const handleCancel = async () => {
     if (!conversationId || cancelling) return;
+
+    setPendingSwitchModel(null);
 
     try {
       setCancelling(true);
@@ -2028,7 +2072,22 @@ function ChatInterface({
             // Error state
             <>
               <span className="status-message status-error">{error}</span>
-              <button onClick={() => setError(null)} className="status-button status-button-text">
+              {pendingSwitchModel && (
+                <button
+                  onClick={handleConfirmSwitchAndStop}
+                  disabled={switchingModel}
+                  className="status-button status-button-primary"
+                >
+                  {switchingModel ? "Switching..." : "Switch & Stop"}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setPendingSwitchModel(null);
+                  setError(null);
+                }}
+                className="status-button status-button-text"
+              >
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -2083,9 +2142,9 @@ function ChatInterface({
                 <ModelPicker
                   models={models}
                   selectedModel={selectedModel}
-                  onSelectModel={setSelectedModel}
+                  onSelectModel={handleModelSelection}
                   onManageModels={() => onOpenModelsModal?.()}
-                  disabled={sending}
+                  disabled={sending || switchingModel}
                 />
               </div>
 
