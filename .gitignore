@@ -57,3 +57,6 @@ coverage/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Local git worktrees
+.worktrees/
