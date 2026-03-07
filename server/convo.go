@@ -482,7 +482,8 @@ func (cm *ConversationManager) ensureLoop(service llm.Service, modelID string) e
 	loopInstance := loop.NewLoop(loop.Config{
 		LLM:           service,
 		History:       history,
-		Tools:         toolSet.Tools(),
+		Tools:         toolSet.AllTools(),
+		ActiveToolsFn: toolSet.ActiveTools,
 		RecordMessage: recordMessage,
 		Logger:        logger,
 		System:        system,
