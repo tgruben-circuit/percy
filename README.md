@@ -71,6 +71,10 @@ export PERCY_MUNINN_TOKEN=your-token   # optional, default: empty
 
 Local SQLite memory remains primary. MuninnDB is additive — if unreachable, Percy operates normally.
 
+### Markdown Table Rendering
+
+Agent responses containing markdown tables are rendered as styled, readable HTML tables — bordered, with header highlighting, column alignment, hover rows, and horizontal scroll on mobile. No external markdown library needed; a lightweight built-in parser handles detection and rendering while leaving the rest of the text untouched.
+
 ### Notification Channels
 
 Get notified when the agent finishes work. Supports Discord webhooks and email, with a test endpoint to verify connectivity. Channels are configurable via the API and persist in the database.
