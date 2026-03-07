@@ -296,3 +296,116 @@ func TestNewToolSet_SubagentDepthLimit(t *testing.T) {
 		}
 	})
 }
+
+func TestToolSet_DeferredTools(t *testing.T) {
+	provider := &mockLLMProvider{}
+
+	cfg := ToolSetConfig{
+		LLMProvider:            provider,
+		ModelID:                "test-model",
+		WorkingDir:             "/test",
+		EnableBrowser:          true,
+		EnableCodeIntelligence: true,
+	}
+
+	ctx := context.Background()
+	ts := NewToolSet(ctx, cfg)
+
+	allTools := ts.AllTools()
+	activeTools := ts.ActiveTools()
+
+	if len(activeTools) >= len(allTools) {
+		t.Errorf("expected ActiveTools (%d) < AllTools (%d)", len(activeTools), len(allTools))
+	}
+
+	// request_tools should be in active tools
+	foundRequestTools := false
+	for _, tool := range activeTools {
+		if tool.Name == "request_tools" {
+			foundRequestTools = true
+			break
+		}
+	}
+	if !foundRequestTools {
+		t.Error("expected request_tools in ActiveTools")
+	}
+
+	// request_tools should also be in all tools
+	foundInAll := false
+	for _, tool := range allTools {
+		if tool.Name == "request_tools" {
+			foundInAll = true
+			break
+		}
+	}
+	if !foundInAll {
+		t.Error("expected request_tools in AllTools")
+	}
+
+	// Verify deferred tools are NOT in active tools
+	for _, tool := range activeTools {
+		if tool.Deferred {
+			t.Errorf("deferred tool %q should not be in ActiveTools before activation", tool.Name)
+		}
+	}
+
+	// Verify Tools() is alias for AllTools()
+	if len(ts.Tools()) != len(allTools) {
+		t.Errorf("Tools() (%d) should equal AllTools() (%d)", len(ts.Tools()), len(allTools))
+	}
+}
+
+func TestToolSet_NoDeferredWithoutOptionalTools(t *testing.T) {
+	provider := &mockLLMProvider{}
+
+	cfg := ToolSetConfig{
+		LLMProvider: provider,
+		ModelID:     "test-model",
+		WorkingDir:  "/test",
+		// No browser, no LSP, no cluster
+	}
+
+	ctx := context.Background()
+	ts := NewToolSet(ctx, cfg)
+
+	allTools := ts.AllTools()
+	activeTools := ts.ActiveTools()
+
+	// output_iframe is always present and always deferred, so request_tools is always added.
+	// ActiveTools should exclude deferred output_iframe but include request_tools.
+	foundRequestTools := false
+	for _, tool := range allTools {
+		if tool.Name == "request_tools" {
+			foundRequestTools = true
+			break
+		}
+	}
+	if !foundRequestTools {
+		t.Error("expected request_tools in AllTools (output_iframe is always deferred)")
+	}
+
+	// ActiveTools should be less than AllTools (deferred output_iframe excluded)
+	if len(activeTools) >= len(allTools) {
+		t.Errorf("expected ActiveTools (%d) < AllTools (%d)", len(activeTools), len(allTools))
+	}
+
+	// No browser or LSP tools should be present at all
+	for _, tool := range allTools {
+		if tool.Category == "browser" {
+			t.Errorf("unexpected browser tool %q without EnableBrowser", tool.Name)
+		}
+		if tool.Category == "lsp" {
+			t.Errorf("unexpected LSP tool %q without EnableCodeIntelligence", tool.Name)
+		}
+		if tool.Category == "cluster" {
+			t.Errorf("unexpected cluster tool %q without ClusterNode", tool.Name)
+		}
+	}
+
+	// The deferred output_iframe should NOT be in active tools
+	for _, tool := range activeTools {
+		if tool.Name == "output_iframe" {
+			t.Error("deferred output_iframe should not be in ActiveTools before activation")
+		}
+	}
+}

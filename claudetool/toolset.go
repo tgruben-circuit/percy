@@ -85,13 +85,28 @@ type ToolSetConfig struct {
 // ToolSet holds a set of tools for a single conversation.
 // Each conversation should have its own ToolSet.
 type ToolSet struct {
-	tools   []*llm.Tool
-	cleanup func()
-	wd      *MutableWorkingDir
+	tools        []*llm.Tool
+	cleanup      func()
+	wd           *MutableWorkingDir
+	requestTools *RequestToolsTool
 }
 
-// Tools returns the tools in this set.
+// Tools returns all tools in this set (alias for AllTools).
 func (ts *ToolSet) Tools() []*llm.Tool {
+	return ts.AllTools()
+}
+
+// AllTools returns all tools including deferred ones.
+func (ts *ToolSet) AllTools() []*llm.Tool {
+	return ts.tools
+}
+
+// ActiveTools returns only the currently active tools.
+// Deferred tools are excluded unless their category has been activated via request_tools.
+func (ts *ToolSet) ActiveTools() []*llm.Tool {
+	if ts.requestTools != nil {
+		return ts.requestTools.FilterActiveTools(ts.tools)
+	}
 	return ts.tools
 }
 
@@ -144,6 +159,9 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 	}
 
 	outputIframeTool := &OutputIframeTool{WorkingDir: wd}
+	iframeTool := outputIframeTool.Tool()
+	iframeTool.Deferred = true
+	iframeTool.Category = "output"
 
 	readFileTool := &ReadFileTool{WorkingDir: wd}
 
@@ -152,7 +170,7 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 		patchTool.Tool(),
 		keywordTool.Tool(),
 		changeDirTool.Tool(),
-		outputIframeTool.Tool(),
+		iframeTool,
 		readFileTool.Tool(),
 	}
 
@@ -185,7 +203,10 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 
 	if cfg.ClusterNode != nil {
 		if node, ok := cfg.ClusterNode.(*cluster.Node); ok {
-			tools = append(tools, NewDispatchTool(node).Tool())
+			dispatchTool := NewDispatchTool(node).Tool()
+			dispatchTool.Deferred = true
+			dispatchTool.Category = "cluster"
+			tools = append(tools, dispatchTool)
 		}
 	}
 
@@ -200,6 +221,10 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 			}
 		}
 		browserTools, browserCleanup := browse.RegisterBrowserTools(ctx, true, maxImageDimension)
+		for _, bt := range browserTools {
+			bt.Deferred = true
+			bt.Category = "browser"
+		}
 		if len(browserTools) > 0 {
 			tools = append(tools, browserTools...)
 		}
@@ -208,6 +233,10 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 
 	if cfg.EnableCodeIntelligence {
 		lspTools, lspCleanup := lsp.RegisterLSPTools(wd.Get)
+		for _, lt := range lspTools {
+			lt.Deferred = true
+			lt.Category = "lsp"
+		}
 		tools = append(tools, lspTools...)
 		cleanups = append(cleanups, lspCleanup)
 	}
@@ -221,9 +250,24 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 		}
 	}
 
+	// Collect deferred tools and create request_tools meta-tool if needed.
+	var deferredTools []*llm.Tool
+	for _, t := range tools {
+		if t.Deferred {
+			deferredTools = append(deferredTools, t)
+		}
+	}
+
+	var reqTools *RequestToolsTool
+	if len(deferredTools) > 0 {
+		reqTools = NewRequestToolsTool(deferredTools)
+		tools = append(tools, reqTools.Tool())
+	}
+
 	return &ToolSet{
-		tools:   tools,
-		cleanup: cleanup,
-		wd:      wd,
+		tools:        tools,
+		cleanup:      cleanup,
+		wd:           wd,
+		requestTools: reqTools,
 	}
 }
