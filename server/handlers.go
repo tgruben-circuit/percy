@@ -1042,6 +1042,20 @@ func (s *Server) handleSwitchModelConversation(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	err = s.db.Queries(r.Context(), func(q *generated.Queries) error {
+		_, err := q.GetConversation(r.Context(), conversationID)
+		return err
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		http.Error(w, "Conversation not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		s.logger.Error("Failed to verify conversation", "conversationID", conversationID, "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	manager, err := s.getOrCreateConversationManager(r.Context(), conversationID)
 	if err != nil {
 		s.logger.Error("Failed to get conversation manager", "conversationID", conversationID, "error", err)

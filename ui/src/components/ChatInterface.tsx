@@ -721,6 +721,9 @@ function ChatInterface({
 
   // Load messages and set up streaming
   useEffect(() => {
+    setPendingSwitchModel(null);
+    setError(null);
+
     if (conversationId) {
       setAgentWorking(false);
       loadMessages();
@@ -2164,8 +2167,21 @@ function ChatInterface({
               </div>
             </div>
           ) : (
-            // Active conversation - show Ready + context bar
+            // Active conversation - show model selector + ready + context bar
             <div className="status-bar-active">
+              <div
+                className="status-field status-field-model"
+                title="AI model for this conversation"
+              >
+                <span className="status-field-label">Model:</span>
+                <ModelPicker
+                  models={models}
+                  selectedModel={selectedModel}
+                  onSelectModel={handleModelSelection}
+                  onManageModels={() => onOpenModelsModal?.()}
+                  disabled={sending || switchingModel}
+                />
+              </div>
               <span className="status-message status-ready">Ready on {hostname}</span>
               <ContextUsageBar
                 contextWindowSize={contextWindowSize}

@@ -185,3 +185,24 @@ func TestSwitchModelEndpointReturnsConflictWhenActiveWithoutCancel(t *testing.T)
 		t.Fatalf("expected cancel status 200, got %d: %s", cancelW.Code, cancelW.Body.String())
 	}
 }
+
+func TestSwitchModelEndpointConversationNotFound(t *testing.T) {
+	database, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	llmManager := &switchTestLLMManager{services: map[string]llm.Service{
+		"predictable": loop.NewPredictableService(),
+	}}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn}))
+	server := NewServer(database, llmManager, claudetool.ToolSetConfig{EnableBrowser: false}, logger, true, "", "predictable", "", nil)
+
+	req := httptest.NewRequest("POST", "/missing-conversation/switch-model", bytes.NewBufferString(`{"model":"predictable"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	server.conversationMux().ServeHTTP(w, req)
+
+	if w.Code != 404 {
+		t.Fatalf("expected status 404, got %d: %s", w.Code, w.Body.String())
+	}
+}
