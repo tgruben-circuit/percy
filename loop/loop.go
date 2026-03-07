@@ -31,6 +31,10 @@ type Config struct {
 	System           []llm.SystemContent
 	WorkingDir       string // working directory for tools
 	OnGitStateChange GitStateChangeFunc
+	// ActiveToolsFn returns the tools to send to the LLM for the current turn.
+	// If nil, all Tools are sent. This is used for deferred tool loading where
+	// only a subset of tools are active initially.
+	ActiveToolsFn func() []*llm.Tool
 	// GetWorkingDir returns the current working directory for tools.
 	// If set, this is called at end of turn to check for git state changes.
 	// If nil, Config.WorkingDir is used as a static value.
@@ -52,6 +56,7 @@ type Loop struct {
 	workingDir       string
 	onGitStateChange GitStateChangeFunc
 	getWorkingDir    func() string
+	activeToolsFn    func() []*llm.Tool
 	lastGitState      *gitstate.GitState
 	truncationRetries int
 }
@@ -61,6 +66,12 @@ func NewLoop(config Config) *Loop {
 	logger := config.Logger
 	if logger == nil {
 		logger = slog.Default()
+	}
+
+	activeToolsFn := config.ActiveToolsFn
+	if activeToolsFn == nil {
+		allTools := config.Tools
+		activeToolsFn = func() []*llm.Tool { return allTools }
 	}
 
 	// Get initial git state
@@ -74,6 +85,7 @@ func NewLoop(config Config) *Loop {
 		llm:              config.LLM,
 		history:          config.History,
 		tools:            config.Tools,
+		activeToolsFn:    activeToolsFn,
 		recordMessage:    config.RecordMessage,
 		messageQueue:     make([]llm.Message, 0),
 		logger:           logger,
@@ -192,7 +204,7 @@ func (l *Loop) ProcessOneTurn(ctx context.Context) error {
 func (l *Loop) processLLMRequest(ctx context.Context) error {
 	l.mu.Lock()
 	messages := append([]llm.Message(nil), l.history...)
-	tools := l.tools
+	tools := l.activeToolsFn()
 	system := l.system
 	llmService := l.llm
 	l.mu.Unlock()
