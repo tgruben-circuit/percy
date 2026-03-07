@@ -436,7 +436,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/conversations/new", http.HandlerFunc(s.handleNewConversation))           // Small response
 	mux.Handle("/api/conversations/continue", http.HandlerFunc(s.handleContinueConversation)) // Small response
 	mux.Handle("/api/conversations/distill", http.HandlerFunc(s.handleDistillConversation))   // Small response
-	mux.Handle("/api/conversations/fork", http.HandlerFunc(s.handleForkConversation))       // Small response
+	mux.Handle("/api/conversations/fork", http.HandlerFunc(s.handleForkConversation))         // Small response
 	mux.Handle("/api/conversation/", http.StripPrefix("/api/conversation", s.conversationMux()))
 	mux.Handle("/api/conversation-by-slug/", gzipHandler(http.HandlerFunc(s.handleConversationBySlug)))
 	mux.Handle("/api/validate-cwd", http.HandlerFunc(s.handleValidateCwd)) // Small response
@@ -785,7 +785,7 @@ func getGitWorktreeRoot(repoPath string) string {
 	}
 
 	// The main repo root is the parent of the common .git dir
-	return filepath.Dir(commonDir)
+	return normalizePathForInput(repoPath, filepath.Dir(commonDir))
 }
 
 // handleCreateDirectory creates a new directory

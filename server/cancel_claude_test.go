@@ -768,7 +768,7 @@ func TestClaudeResumeAfterCancellation(t *testing.T) {
 	defer h.Close()
 
 	// Start a conversation
-	h.NewConversation("Please run: sleep 5", "")
+	h.NewConversation("Use the bash tool to run exactly this command: tail -f /dev/null", "")
 
 	// Wait for tool to start
 	h.WaitForAgentWorking()
@@ -879,8 +879,8 @@ func TestClaudeResumeAfterCancellationPreservesContext(t *testing.T) {
 	}
 	t.Logf("Tokens after first exchange: %v", tokens1)
 
-	// Start a slow command to trigger cancellation
-	h.Chat("Run this command: sleep 10")
+	// Start a long-running command to trigger cancellation reliably
+	h.Chat("Use the bash tool to run exactly this command: tail -f /dev/null")
 	h.WaitForAgentWorking()
 
 	// Cancel
