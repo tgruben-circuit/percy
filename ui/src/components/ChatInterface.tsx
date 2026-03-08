@@ -2102,8 +2102,21 @@ function ChatInterface({
               </button>
             </>
           ) : agentWorking && conversationId ? (
-            // Agent working - show status with stop button and context bar
+            // Agent working - keep model selector available for switch-and-stop flow
             <div className="status-bar-active" data-testid="agent-thinking">
+              <div
+                className="status-field status-field-model"
+                title="AI model for this conversation"
+              >
+                <span className="status-field-label">Model:</span>
+                <ModelPicker
+                  models={models}
+                  selectedModel={selectedModel}
+                  onSelectModel={handleModelSelection}
+                  onManageModels={() => onOpenModelsModal?.()}
+                  disabled={sending || switchingModel}
+                />
+              </div>
               <div className="status-working-group">
                 <AnimatedWorkingStatus />
                 <button
