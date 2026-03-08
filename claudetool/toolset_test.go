@@ -409,3 +409,23 @@ func TestToolSet_NoDeferredWithoutOptionalTools(t *testing.T) {
 		}
 	}
 }
+
+func TestToolSet_HasScriptedTools(t *testing.T) {
+	cfg := ToolSetConfig{
+		WorkingDir: t.TempDir(),
+		ModelID:    "test-model",
+	}
+
+	ts := NewToolSet(context.Background(), cfg)
+
+	found := false
+	for _, tool := range ts.AllTools() {
+		if tool.Name == "scripted_tools" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected scripted_tools in tool set")
+	}
+}

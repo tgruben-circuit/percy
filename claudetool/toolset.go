@@ -245,6 +245,13 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 		}
 	}
 
+	// Register scripted_tools for programmatic tool calling
+	scriptedTool := &ScriptedToolsTool{
+		Tools:      tools, // filtered at execution time via filterScriptableTools
+		WorkingDir: wd,
+	}
+	tools = append(tools, scriptedTool.Tool())
+
 	// Collect deferred tools and create request_tools meta-tool if needed.
 	var deferredTools []*llm.Tool
 	for _, t := range tools {
