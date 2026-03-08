@@ -87,3 +87,76 @@ func TestFilterScriptableTools(t *testing.T) {
 		t.Errorf("expected bash and read_file, got %v", names)
 	}
 }
+
+func TestScriptedTools_BasicPrint(t *testing.T) {
+	wd := NewMutableWorkingDir(t.TempDir())
+	st := &ScriptedToolsTool{
+		Tools:      nil,
+		WorkingDir: wd,
+	}
+
+	input, _ := json.Marshal(scriptedToolsInput{Script: "print('hello world')"})
+	out := st.Run(context.Background(), json.RawMessage(input))
+	if out.Error != nil {
+		t.Fatalf("unexpected error: %v", out.Error)
+	}
+	if len(out.LLMContent) == 0 {
+		t.Fatal("expected content")
+	}
+	text := out.LLMContent[0].Text
+	if !strings.Contains(text, "hello world") {
+		t.Errorf("expected 'hello world' in output, got %q", text)
+	}
+}
+
+func TestScriptedTools_SingleToolCall(t *testing.T) {
+	mockTool := &llm.Tool{
+		Name: "read_file",
+		Run: func(ctx context.Context, input json.RawMessage) llm.ToolOut {
+			return llm.ToolOut{LLMContent: llm.TextContent("file contents here")}
+		},
+	}
+
+	wd := NewMutableWorkingDir(t.TempDir())
+	st := &ScriptedToolsTool{
+		Tools:      []*llm.Tool{mockTool},
+		WorkingDir: wd,
+	}
+
+	script := `result = await read_file(path="test.txt")
+print(result)`
+	input, _ := json.Marshal(scriptedToolsInput{Script: script})
+	out := st.Run(context.Background(), json.RawMessage(input))
+	if out.Error != nil {
+		t.Fatalf("unexpected error: %v", out.Error)
+	}
+	if len(out.LLMContent) == 0 {
+		t.Fatal("expected content")
+	}
+	text := out.LLMContent[0].Text
+	if !strings.Contains(text, "file contents here") {
+		t.Errorf("expected 'file contents here' in output, got %q", text)
+	}
+}
+
+func TestScriptedTools_SyntaxError(t *testing.T) {
+	wd := NewMutableWorkingDir(t.TempDir())
+	st := &ScriptedToolsTool{
+		Tools:      nil,
+		WorkingDir: wd,
+	}
+
+	input, _ := json.Marshal(scriptedToolsInput{Script: "def foo(:\n  pass"})
+	out := st.Run(context.Background(), json.RawMessage(input))
+	// Syntax errors should be returned as content, not as error
+	if out.Error != nil {
+		t.Fatalf("expected no error (traceback as content), got: %v", out.Error)
+	}
+	if len(out.LLMContent) == 0 {
+		t.Fatal("expected content with traceback")
+	}
+	text := out.LLMContent[0].Text
+	if !strings.Contains(text, "SyntaxError") {
+		t.Errorf("expected SyntaxError in output, got %q", text)
+	}
+}
