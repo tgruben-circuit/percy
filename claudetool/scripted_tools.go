@@ -19,11 +19,6 @@ const (
 	scriptedToolsName    = "scripted_tools"
 	defaultScriptTimeout = 2 * time.Minute
 
-	scriptedToolsDescription = `Run a Python script that can call other tools programmatically.
-The script runs in an async context. Use await to call tools.
-print() output goes to stderr and becomes the tool result.
-The script has access to auto-generated async functions for each available tool.`
-
 	scriptedToolsInputSchema = `
 {
   "type": "object",
@@ -127,11 +122,31 @@ func (s *ScriptedToolsTool) timeout() time.Duration {
 	return s.Timeout
 }
 
+// description generates a dynamic description listing available tool names.
+func (s *ScriptedToolsTool) description() string {
+	scriptable := filterScriptableTools(s.Tools)
+	names := make([]string, len(scriptable))
+	for i, t := range scriptable {
+		names[i] = t.Name
+	}
+	return fmt.Sprintf(`Execute a Python script that can call other tools programmatically.
+Tool results stay in the script — only your print() output enters the conversation.
+Use this when you need to call multiple tools and process/filter/aggregate results before reporting.
+
+Available tools: %s
+
+Each tool is an async function. Call with keyword arguments matching the tool's input schema:
+  content = await read_file(path="foo.go")
+  result = await bash(command="go test ./...")
+
+Use print() for output — only printed text is returned.`, strings.Join(names, ", "))
+}
+
 // Tool returns the llm.Tool for scripted_tools.
 func (s *ScriptedToolsTool) Tool() *llm.Tool {
 	return &llm.Tool{
 		Name:        scriptedToolsName,
-		Description: strings.TrimSpace(scriptedToolsDescription),
+		Description: s.description(),
 		InputSchema: llm.MustSchema(scriptedToolsInputSchema),
 		Run:         s.Run,
 	}

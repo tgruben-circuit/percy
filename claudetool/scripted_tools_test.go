@@ -91,6 +91,39 @@ func TestFilterScriptableTools(t *testing.T) {
 	}
 }
 
+func TestScriptedTools_ToolDefinition(t *testing.T) {
+	mockTools := []*llm.Tool{
+		{Name: "read_file"},
+		{Name: "bash"},
+		{Name: "scripted_tools"}, // should be excluded from description
+		{Name: "subagent"},       // should be excluded from description
+	}
+
+	st := &ScriptedToolsTool{
+		Tools:      mockTools,
+		WorkingDir: NewMutableWorkingDir("/tmp"),
+	}
+	tool := st.Tool()
+
+	if tool.Name != "scripted_tools" {
+		t.Errorf("expected name 'scripted_tools', got %s", tool.Name)
+	}
+	// Should list available tools
+	if !strings.Contains(tool.Description, "read_file") {
+		t.Error("description should list read_file")
+	}
+	if !strings.Contains(tool.Description, "bash") {
+		t.Error("description should list bash")
+	}
+	// Excluded tools should not appear
+	if strings.Contains(tool.Description, "subagent") {
+		t.Error("description should not list subagent")
+	}
+	if strings.Contains(tool.Description, "scripted_tools") {
+		t.Error("description should not list scripted_tools")
+	}
+}
+
 func TestScriptedTools_BasicPrint(t *testing.T) {
 	wd := NewMutableWorkingDir(t.TempDir())
 	st := &ScriptedToolsTool{
