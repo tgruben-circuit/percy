@@ -3,8 +3,11 @@ package claudetool
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/tgruben-circuit/percy/llm"
 )
@@ -158,5 +161,139 @@ func TestScriptedTools_SyntaxError(t *testing.T) {
 	text := out.LLMContent[0].Text
 	if !strings.Contains(text, "SyntaxError") {
 		t.Errorf("expected SyntaxError in output, got %q", text)
+	}
+}
+
+func TestScriptedTools_MultipleToolCalls(t *testing.T) {
+	var callCount atomic.Int32
+	mockTool := &llm.Tool{
+		Name: "read_file",
+		Run: func(ctx context.Context, input json.RawMessage) llm.ToolOut {
+			callCount.Add(1)
+			var kwargs struct {
+				Path string `json:"path"`
+			}
+			json.Unmarshal(input, &kwargs)
+			return llm.ToolOut{LLMContent: llm.TextContent(fmt.Sprintf("content of %s", kwargs.Path))}
+		},
+	}
+
+	wd := NewMutableWorkingDir(t.TempDir())
+	st := &ScriptedToolsTool{
+		Tools:      []*llm.Tool{mockTool},
+		WorkingDir: wd,
+	}
+
+	script := `paths = ["a.go", "b.go", "c.go"]
+results = []
+for p in paths:
+    content = await read_file(path=p)
+    results.append(content)
+print(f"Read {len(results)} files")`
+	input, _ := json.Marshal(scriptedToolsInput{Script: script})
+	out := st.Run(context.Background(), json.RawMessage(input))
+	if out.Error != nil {
+		t.Fatalf("unexpected error: %v", out.Error)
+	}
+	if got := callCount.Load(); got != 3 {
+		t.Errorf("expected 3 tool calls, got %d", got)
+	}
+	text := out.LLMContent[0].Text
+	if !strings.Contains(text, "Read 3 files") {
+		t.Errorf("expected 'Read 3 files' in output, got %q", text)
+	}
+}
+
+func TestScriptedTools_ToolError(t *testing.T) {
+	mockTool := &llm.Tool{
+		Name: "read_file",
+		Run: func(ctx context.Context, input json.RawMessage) llm.ToolOut {
+			return llm.ErrorfToolOut("file not found: test.go")
+		},
+	}
+
+	wd := NewMutableWorkingDir(t.TempDir())
+	st := &ScriptedToolsTool{
+		Tools:      []*llm.Tool{mockTool},
+		WorkingDir: wd,
+	}
+
+	script := `result = await read_file(path="test.go")
+print(result)`
+	input, _ := json.Marshal(scriptedToolsInput{Script: script})
+	out := st.Run(context.Background(), json.RawMessage(input))
+	// Script crashes with RuntimeError; traceback returned as content
+	if out.Error != nil {
+		t.Fatalf("expected no error (traceback as content), got: %v", out.Error)
+	}
+	text := out.LLMContent[0].Text
+	if !strings.Contains(text, "file not found") {
+		t.Errorf("expected 'file not found' in output, got %q", text)
+	}
+}
+
+func TestScriptedTools_ToolErrorCaught(t *testing.T) {
+	mockTool := &llm.Tool{
+		Name: "read_file",
+		Run: func(ctx context.Context, input json.RawMessage) llm.ToolOut {
+			return llm.ErrorfToolOut("file not found: missing.go")
+		},
+	}
+
+	wd := NewMutableWorkingDir(t.TempDir())
+	st := &ScriptedToolsTool{
+		Tools:      []*llm.Tool{mockTool},
+		WorkingDir: wd,
+	}
+
+	script := `try:
+    result = await read_file(path="missing.go")
+except RuntimeError as e:
+    print(f"caught error: {e}")`
+	input, _ := json.Marshal(scriptedToolsInput{Script: script})
+	out := st.Run(context.Background(), json.RawMessage(input))
+	if out.Error != nil {
+		t.Fatalf("unexpected error: %v", out.Error)
+	}
+	text := out.LLMContent[0].Text
+	if !strings.Contains(text, "caught error: file not found") {
+		t.Errorf("expected 'caught error: file not found' in output, got %q", text)
+	}
+}
+
+func TestScriptedTools_Timeout(t *testing.T) {
+	wd := NewMutableWorkingDir(t.TempDir())
+	st := &ScriptedToolsTool{
+		Tools:      nil,
+		WorkingDir: wd,
+		Timeout:    2 * time.Second,
+	}
+
+	script := `import time
+time.sleep(30)`
+	input, _ := json.Marshal(scriptedToolsInput{Script: script})
+	out := st.Run(context.Background(), json.RawMessage(input))
+	if out.Error == nil {
+		t.Fatal("expected timeout error")
+	}
+	if !strings.Contains(out.Error.Error(), "timed out") {
+		t.Errorf("expected 'timed out' in error, got %q", out.Error.Error())
+	}
+}
+
+func TestScriptedTools_EmptyScript(t *testing.T) {
+	wd := NewMutableWorkingDir(t.TempDir())
+	st := &ScriptedToolsTool{
+		Tools:      nil,
+		WorkingDir: wd,
+	}
+
+	input, _ := json.Marshal(scriptedToolsInput{Script: ""})
+	out := st.Run(context.Background(), json.RawMessage(input))
+	if out.Error == nil {
+		t.Fatal("expected error for empty script")
+	}
+	if !strings.Contains(out.Error.Error(), "empty") {
+		t.Errorf("expected 'empty' in error, got %q", out.Error.Error())
 	}
 }
