@@ -34,6 +34,22 @@ Compiler-accurate code navigation powered by Language Server Protocol. The `code
 
 Percy discovers skills from multiple sources: bundled skills, user config directories (`~/.config/percy/`, `~/.percy/`), shared agent skills (`~/.config/agents/skills/`), project `.skills/` directories, and SKILL.md files anywhere in the project tree. Use the `/skills` command to see what's available.
 
+### Programmatic Tool Calling
+
+Inspired by [Anthropic's programmatic tool calling](https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling), but provider-independent. The `scripted_tools` tool lets the agent write Python scripts that call Percy's tools programmatically — intermediate tool results stay in the script and only the final `print()` output enters the conversation context. This dramatically reduces token consumption for multi-tool workflows like scanning many files, running bulk checks, or aggregating data across tools.
+
+```python
+# Agent writes this to check 20 files — only the summary enters context
+results = []
+for path in file_list:
+    content = await read_file(path=path)
+    if "TODO" in content:
+        results.append(path)
+print(f"Found {len(results)} files with TODOs: {', '.join(results)}")
+```
+
+Requires `uv` (Python package manager) in PATH.
+
 ### Context Window Management
 
 Proactive monitoring of LLM context usage with warnings at 80% capacity, automatic retry on response truncation (up to 2 retries), and increased max output tokens (16,384) for longer responses.
