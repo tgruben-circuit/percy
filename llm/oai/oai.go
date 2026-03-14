@@ -45,6 +45,7 @@ type Model struct {
 	APIKeyEnv          string // environment variable name for the API key
 	IsReasoningModel   bool   // whether this model is a reasoning model (e.g. O3, O4-mini)
 	UseSimplifiedPatch bool   // whether to use the simplified patch input schema; defaults to false
+	UseMaxTokens       bool   // use max_tokens instead of max_completion_tokens (for Ollama and other compatible APIs)
 }
 
 var (
@@ -828,12 +829,17 @@ func (s *Service) Do(ctx context.Context, ir *llm.Request) (*llm.Response, error
 	}
 
 	// Create the OpenAI request
+	maxTok := cmp.Or(s.MaxTokens, DefaultMaxTokens)
 	req := openai.ChatCompletionRequest{
-		Model:               model.ModelName,
-		Messages:            allMessages,
-		Tools:               tools,
-		ToolChoice:          fromLLMToolChoice(ir.ToolChoice), // TODO: make fromLLMToolChoice return an error when a perfect translation is not possible
-		MaxCompletionTokens: cmp.Or(s.MaxTokens, DefaultMaxTokens),
+		Model:      model.ModelName,
+		Messages:   allMessages,
+		Tools:      tools,
+		ToolChoice: fromLLMToolChoice(ir.ToolChoice), // TODO: make fromLLMToolChoice return an error when a perfect translation is not possible
+	}
+	if model.UseMaxTokens {
+		req.MaxTokens = maxTok
+	} else {
+		req.MaxCompletionTokens = maxTok
 	}
 	// Construct the full URL for logging and debugging
 	fullURL := baseURL + "/chat/completions"

@@ -46,7 +46,7 @@ func DiscoverOllamaModels(baseURL string, httpc *http.Client) ([]Model, error) {
 			Description: fmt.Sprintf("Ollama local: %s", modelName),
 			Factory: func(config *Config, httpc *http.Client) (llm.Service, error) {
 				return &oai.Service{
-					Model:    oai.Model{ModelName: modelName, URL: endpoint},
+					Model:    oai.Model{ModelName: modelName, URL: endpoint, UseMaxTokens: true},
 					APIKey:   "ollama",
 					ModelURL: endpoint,
 					HTTPC:    httpc,
