@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -510,9 +511,52 @@ func (l *Loop) handleMaxTokensTruncation(ctx context.Context, resp *llm.Response
 	return nil
 }
 
-// handleToolCalls processes tool calls from the LLM response
+// executeTool runs a single tool and returns the tool result content.
+func (l *Loop) executeTool(ctx context.Context, c llm.Content, tool *llm.Tool) llm.Content {
+	toolCtx := ctx
+	if l.workingDir != "" {
+		toolCtx = claudetool.WithWorkingDir(ctx, l.workingDir)
+	}
+	startTime := time.Now()
+	result := tool.Run(toolCtx, c.ToolInput)
+	endTime := time.Now()
+
+	var toolResultContent []llm.Content
+	if result.Error != nil {
+		l.logger.Error("tool execution failed", "name", c.ToolName, "error", result.Error)
+		toolResultContent = []llm.Content{
+			{Type: llm.ContentTypeText, Text: result.Error.Error()},
+		}
+	} else {
+		toolResultContent = result.LLMContent
+		l.logger.Debug("tool executed successfully", "name", c.ToolName, "duration", endTime.Sub(startTime))
+	}
+
+	return llm.Content{
+		Type:             llm.ContentTypeToolResult,
+		ToolUseID:        c.ID,
+		ToolError:        result.Error != nil,
+		ToolResult:       toolResultContent,
+		ToolUseStartTime: &startTime,
+		ToolUseEndTime:   &endTime,
+		Display:          result.Display,
+	}
+}
+
+// handleToolCalls processes tool calls from the LLM response.
+// Concurrent-safe tools run in parallel; unsafe tools run sequentially after.
+// Results are returned in the original tool call order.
 func (l *Loop) handleToolCalls(ctx context.Context, content []llm.Content) error {
-	var toolResults []llm.Content
+	type toolCall struct {
+		index   int
+		content llm.Content
+		tool    *llm.Tool
+	}
+
+	// Resolve tool calls and partition into concurrent/sequential.
+	var concurrent, sequential []toolCall
+	allResults := make([]llm.Content, 0, len(content))
+	resultIndex := 0
 
 	for _, c := range content {
 		if c.Type != llm.ContentTypeToolUse {
@@ -532,7 +576,7 @@ func (l *Loop) handleToolCalls(ctx context.Context, content []llm.Content) error
 
 		if tool == nil {
 			l.logger.Error("tool not found", "name", c.ToolName)
-			toolResults = append(toolResults, llm.Content{
+			allResults = append(allResults, llm.Content{
 				Type:      llm.ContentTypeToolResult,
 				ToolUseID: c.ID,
 				ToolError: true,
@@ -540,51 +584,52 @@ func (l *Loop) handleToolCalls(ctx context.Context, content []llm.Content) error
 					{Type: llm.ContentTypeText, Text: fmt.Sprintf("Tool '%s' not found", c.ToolName)},
 				},
 			})
+			resultIndex++
 			continue
 		}
 
-		// Execute the tool with working directory set in context
-		toolCtx := ctx
-		if l.workingDir != "" {
-			toolCtx = claudetool.WithWorkingDir(ctx, l.workingDir)
-		}
-		startTime := time.Now()
-		result := tool.Run(toolCtx, c.ToolInput)
-		endTime := time.Now()
+		tc := toolCall{index: resultIndex, content: c, tool: tool}
+		allResults = append(allResults, llm.Content{}) // placeholder
+		resultIndex++
 
-		var toolResultContent []llm.Content
-		if result.Error != nil {
-			l.logger.Error("tool execution failed", "name", c.ToolName, "error", result.Error)
-			toolResultContent = []llm.Content{
-				{Type: llm.ContentTypeText, Text: result.Error.Error()},
-			}
+		if tool.Concurrent {
+			concurrent = append(concurrent, tc)
 		} else {
-			toolResultContent = result.LLMContent
-			l.logger.Debug("tool executed successfully", "name", c.ToolName, "duration", endTime.Sub(startTime))
+			sequential = append(sequential, tc)
 		}
-
-		toolResults = append(toolResults, llm.Content{
-			Type:             llm.ContentTypeToolResult,
-			ToolUseID:        c.ID,
-			ToolError:        result.Error != nil,
-			ToolResult:       toolResultContent,
-			ToolUseStartTime: &startTime,
-			ToolUseEndTime:   &endTime,
-			Display:          result.Display,
-		})
 	}
 
-	if len(toolResults) > 0 {
+	// Run concurrent-safe tools in parallel.
+	if len(concurrent) > 0 {
+		sem := make(chan struct{}, runtime.GOMAXPROCS(0))
+		var wg sync.WaitGroup
+		for _, tc := range concurrent {
+			wg.Add(1)
+			sem <- struct{}{}
+			go func(tc toolCall) {
+				defer wg.Done()
+				defer func() { <-sem }()
+				allResults[tc.index] = l.executeTool(ctx, tc.content, tc.tool)
+			}(tc)
+		}
+		wg.Wait()
+	}
+
+	// Run sequential tools in order.
+	for _, tc := range sequential {
+		allResults[tc.index] = l.executeTool(ctx, tc.content, tc.tool)
+	}
+
+	if len(allResults) > 0 {
 		// Add tool results to history as a user message
 		toolMessage := llm.Message{
 			Role:    llm.MessageRoleUser,
-			Content: toolResults,
+			Content: allResults,
 		}
 
 		l.mu.Lock()
 		l.history = append(l.history, toolMessage)
 		// Check for queued user messages (interruptions) before continuing.
-		// This allows user messages to be processed as soon as possible.
 		if len(l.messageQueue) > 0 {
 			l.history = append(l.history, l.messageQueue...)
 			l.messageQueue = l.messageQueue[:0]

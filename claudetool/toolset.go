@@ -160,13 +160,19 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 
 	readFileTool := &ReadFileTool{WorkingDir: wd}
 
+	readTool := readFileTool.Tool()
+	readTool.Concurrent = true
+
+	kwTool := keywordTool.Tool()
+	kwTool.Concurrent = true
+
 	tools := []*llm.Tool{
 		bashTool.Tool(),
 		patchTool.Tool(),
-		keywordTool.Tool(),
+		kwTool,
 		changeDirTool.Tool(),
 		iframeTool,
-		readFileTool.Tool(),
+		readTool,
 	}
 
 	// Add subagent tool if configured and depth limit not reached.
@@ -179,7 +185,9 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 			WorkingDir:           wd,
 			Runner:               cfg.SubagentRunner,
 		}
-		tools = append(tools, subagentTool.Tool())
+		subTool := subagentTool.Tool()
+		subTool.Concurrent = true
+		tools = append(tools, subTool)
 	}
 
 	// Register todo_write tool
@@ -201,6 +209,7 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 			dispatchTool := NewDispatchTool(node).Tool()
 			dispatchTool.Deferred = true
 			dispatchTool.Category = "cluster"
+			dispatchTool.Concurrent = true
 			tools = append(tools, dispatchTool)
 		}
 	}
@@ -219,6 +228,7 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 		for _, bt := range browserTools {
 			bt.Deferred = true
 			bt.Category = "browser"
+			bt.Concurrent = true
 		}
 		if len(browserTools) > 0 {
 			tools = append(tools, browserTools...)
@@ -231,6 +241,7 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 		for _, lt := range lspTools {
 			lt.Deferred = true
 			lt.Category = "lsp"
+			lt.Concurrent = true
 		}
 		tools = append(tools, lspTools...)
 		cleanups = append(cleanups, lspCleanup)

@@ -130,6 +130,12 @@ type Tool struct {
 	// are activated together. Empty category means the tool is always active (core).
 	Category string
 
+	// Concurrent indicates this tool is safe to run in parallel with other
+	// Concurrent tools in the same tool call batch. Tools that only read
+	// state or operate in isolation (subagent, read, keyword) set this true.
+	// Tools that mutate shared state (bash, patch, changedir) leave it false.
+	Concurrent bool
+
 	// The Run function is automatically called when the tool is used.
 	// Run functions may be called concurrently with each other and themselves.
 	// The input to Run function is the input to the tool, as provided by Claude, in compliance with the input schema.

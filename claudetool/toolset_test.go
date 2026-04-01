@@ -410,6 +410,33 @@ func TestToolSet_NoDeferredWithoutOptionalTools(t *testing.T) {
 	}
 }
 
+func TestToolSetConcurrentClassification(t *testing.T) {
+	ts := NewToolSet(context.Background(), ToolSetConfig{
+		WorkingDir: t.TempDir(),
+	})
+	defer ts.Cleanup()
+
+	expectedConcurrent := map[string]bool{
+		"read_file":      true,
+		"keyword_search": true,
+	}
+	expectedSequential := map[string]bool{
+		"bash":       true,
+		"patch":      true,
+		"change_dir": true,
+		"todo_write": true,
+	}
+
+	for _, tool := range ts.AllTools() {
+		if expectedConcurrent[tool.Name] && !tool.Concurrent {
+			t.Errorf("tool %q should be Concurrent", tool.Name)
+		}
+		if expectedSequential[tool.Name] && tool.Concurrent {
+			t.Errorf("tool %q should NOT be Concurrent", tool.Name)
+		}
+	}
+}
+
 func TestToolSet_HasScriptedTools(t *testing.T) {
 	cfg := ToolSetConfig{
 		WorkingDir: t.TempDir(),
