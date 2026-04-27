@@ -347,3 +347,60 @@ func TestExecTerminal_LoginShell(t *testing.T) {
 		t.Errorf("Expected bash to run as login shell, got: %q", output.String())
 	}
 }
+
+func TestExecTerminal_ControlCharacters(t *testing.T) {
+	h := NewTestHarness(t)
+	defer h.cleanup()
+
+	mux := http.NewServeMux()
+	h.server.RegisterRoutes(mux)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	// Use cat -v which renders control characters as ^X notation.
+	// Sending Ctrl-B (\x02) should appear as "^B" in the output.
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/api/exec-ws?cmd=cat+-v"
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	conn, wsResp, err := websocket.Dial(ctx, wsURL, nil)
+	if err != nil {
+		t.Fatalf("Failed to dial websocket: %v", err)
+	}
+	if wsResp != nil && wsResp.Body != nil {
+		wsResp.Body.Close()
+	}
+	defer conn.Close(websocket.StatusNormalClosure, "test done")
+
+	initMsg := ExecMessage{Type: "init", Cols: 80, Rows: 24}
+	if err := wsjson.Write(ctx, conn, initMsg); err != nil {
+		t.Fatalf("Failed to write init message: %v", err)
+	}
+
+	// Send Ctrl-B (\x02) followed by newline to flush the line buffer.
+	if err := wsjson.Write(ctx, conn, ExecMessage{Type: "input", Data: "\x02\n"}); err != nil {
+		t.Fatalf("Failed to write input: %v", err)
+	}
+
+	// Read output until we see ^B (cat -v notation for \x02).
+	var output strings.Builder
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		readCtx, readCancel := context.WithTimeout(ctx, 200*time.Millisecond)
+		var msg ExecMessage
+		err := wsjson.Read(readCtx, conn, &msg)
+		readCancel()
+		if err != nil {
+			continue
+		}
+		if msg.Type == "output" {
+			data, _ := base64.StdEncoding.DecodeString(msg.Data)
+			output.Write(data)
+		}
+		if strings.Contains(output.String(), "^B") {
+			return // success
+		}
+	}
+	t.Errorf("Ctrl-B (\\x02) was not delivered through pty; cat -v output: %q", output.String())
+}

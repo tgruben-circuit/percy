@@ -187,6 +187,36 @@ const CloseIcon = () => (
   </svg>
 );
 
+const ChevronUpIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="18 15 12 9 6 15" />
+  </svg>
+);
+
+const ChevronDownIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
 function ActionButton({
   onClick,
   title,
@@ -219,11 +249,10 @@ export default function TerminalPanel({
 }: TerminalPanelProps) {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [height, setHeight] = useState(300);
-  const [heightLocked, setHeightLocked] = useState(false);
-  const isFirstTerminalRef = useRef(true);
+  const [minimized, setMinimized] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [statusMap, setStatusMap] = useState<
-    Map<string, { status: TermStatus; exitCode: number | null; contentLines: number }>
+    Map<string, { status: TermStatus; exitCode: number | null }>
   >(new Map());
   const isResizingRef = useRef(false);
   const startYRef = useRef(0);
@@ -248,6 +277,7 @@ export default function TerminalPanel({
     if (terminals.length > 0) {
       const lastTerminal = terminals[terminals.length - 1];
       setActiveTabId(lastTerminal.id);
+      setMinimized(false); // expand when a new terminal arrives
     } else {
       setActiveTabId(null);
     }
@@ -265,24 +295,17 @@ export default function TerminalPanel({
   }, [terminals, activeTabId]);
 
   const handleStatusChange = useCallback(
-    (id: string, status: TermStatus, exitCode: number | null, contentLines: number) => {
+    (id: string, status: TermStatus, exitCode: number | null) => {
       setStatusMap((prev) => {
         const next = new Map(prev);
         const existing = next.get(id);
         // Don't overwrite exit status with ws.onclose
-        if (
-          existing &&
-          existing.status === "exited" &&
-          status === "exited" &&
-          contentLines === -1
-        ) {
+        if (existing && existing.status === "exited" && status === "exited" && exitCode === null) {
           return prev;
         }
-        const lines = contentLines === -1 ? existing?.contentLines || 0 : contentLines;
         next.set(id, {
           status,
           exitCode: exitCode ?? existing?.exitCode ?? null,
-          contentLines: lines,
         });
         return next;
       });
@@ -290,35 +313,28 @@ export default function TerminalPanel({
     [],
   );
 
-  // Auto-size only for the very first terminal. After that, keep whatever height we have.
+  const toggleMinimized = useCallback(() => {
+    setMinimized((prev) => !prev);
+  }, []);
+
+  // Refit terminals when un-minimizing by nudging the container to trigger ResizeObserver
+  const wasMinimizedRef = useRef(minimized);
   useEffect(() => {
-    if (heightLocked || !activeTabId) return;
-    if (!isFirstTerminalRef.current) return;
-    const info = statusMap.get(activeTabId);
-    if (!info) return;
-
-    const cellHeight = 17; // approximate
-    const minHeight = 60;
-    const maxHeight = 500;
-    const tabBarHeight = 38;
-
-    if (info.status === "exited" || info.status === "error") {
-      const needed = Math.min(
-        maxHeight,
-        Math.max(minHeight, info.contentLines * cellHeight + tabBarHeight + 16),
-      );
-      setHeight(needed);
-      setHeightLocked(true);
-      isFirstTerminalRef.current = false;
-    } else if (info.status === "running") {
-      // While the first command is still running, grow if needed
-      const needed = Math.min(
-        maxHeight,
-        Math.max(minHeight, info.contentLines * cellHeight + tabBarHeight + 16),
-      );
-      setHeight((prev) => Math.max(prev, needed));
+    const wasMinimized = wasMinimizedRef.current;
+    wasMinimizedRef.current = minimized;
+    if (wasMinimized && !minimized && activeTabId) {
+      const timer = setTimeout(() => {
+        const el = document.querySelector(`[data-terminal-id="${activeTabId}"]`);
+        if (el) {
+          (el as HTMLElement).style.height = "99.9%";
+          requestAnimationFrame(() => {
+            (el as HTMLElement).style.height = "100%";
+          });
+        }
+      }, 30);
+      return () => clearTimeout(timer);
     }
-  }, [statusMap, activeTabId, heightLocked]);
+  }, [minimized, activeTabId]);
 
   // Resize drag
   const handleResizeMouseDown = useCallback(
@@ -333,8 +349,6 @@ export default function TerminalPanel({
         // Dragging up increases height
         const delta = startYRef.current - e.clientY;
         setHeight(Math.max(80, Math.min(800, startHeightRef.current + delta)));
-        setHeightLocked(true);
-        isFirstTerminalRef.current = false;
       };
 
       const handleMouseUp = () => {
@@ -479,14 +493,27 @@ export default function TerminalPanel({
   };
 
   return (
-    <div className="terminal-panel" style={{ height: `${height}px`, flexShrink: 0 }}>
-      {/* Resize handle at top */}
-      <div className="terminal-panel-resize-handle" onMouseDown={handleResizeMouseDown}>
-        <div className="terminal-panel-resize-grip" />
-      </div>
+    <div
+      className={`terminal-panel${minimized ? " terminal-panel-minimized" : ""}`}
+      style={minimized ? undefined : { height: `${height}px`, flexShrink: 0 }}
+    >
+      {/* Resize handle at top — hidden when minimized */}
+      {!minimized && (
+        <div className="terminal-panel-resize-handle" onMouseDown={handleResizeMouseDown}>
+          <div className="terminal-panel-resize-grip" />
+        </div>
+      )}
 
       {/* Tab bar + actions */}
       <div className="terminal-panel-header">
+        {/* Minimize/maximize toggle */}
+        <ActionButton
+          onClick={toggleMinimized}
+          title={minimized ? "Expand terminals" : "Minimize terminals"}
+        >
+          {minimized ? <ChevronUpIcon /> : <ChevronDownIcon />}
+        </ActionButton>
+
         <div className="terminal-panel-tabs">
           {terminals.map((t) => {
             const info = statusMap.get(t.id);
@@ -495,7 +522,10 @@ export default function TerminalPanel({
               <div
                 key={t.id}
                 className={`terminal-panel-tab${isActive ? " terminal-panel-tab-active" : ""}`}
-                onClick={() => setActiveTabId(t.id)}
+                onClick={() => {
+                  setActiveTabId(t.id);
+                  if (minimized) setMinimized(false);
+                }}
                 title={t.command}
               >
                 {info?.status === "running" && (
@@ -526,8 +556,8 @@ export default function TerminalPanel({
           })}
         </div>
 
-        {/* Action buttons */}
-        <div className="terminal-panel-actions">
+        {/* Action buttons — hidden when minimized */}
+        {!minimized && <div className="terminal-panel-actions">
           <ActionButton
             onClick={copyScreen}
             title="Copy visible screen"
@@ -564,11 +594,11 @@ export default function TerminalPanel({
           <ActionButton onClick={handleCloseActive} title="Close active terminal">
             <CloseIcon />
           </ActionButton>
-        </div>
+        </div>}
       </div>
 
-      {/* Terminal content area */}
-      <div className="terminal-panel-content">
+      {/* Terminal content area — hidden (not unmounted) when minimized */}
+      <div className="terminal-panel-content" style={minimized ? { display: "none" } : undefined}>
         {terminals.map((t) => (
           <TerminalInstanceWithRegistry
             key={t.id}
@@ -597,12 +627,7 @@ function TerminalInstanceWithRegistry({
   term: EphemeralTerminal;
   isVisible: boolean;
   isDark: boolean;
-  onStatusChange: (
-    id: string,
-    status: TermStatus,
-    exitCode: number | null,
-    contentLines: number,
-  ) => void;
+  onStatusChange: (id: string, status: TermStatus, exitCode: number | null) => void;
   onRegister: (id: string, xterm: Terminal) => void;
   onUnregister: (id: string) => void;
 }) {
@@ -639,7 +664,7 @@ function TerminalInstanceWithRegistry({
 
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: "init", cols: xterm.cols, rows: xterm.rows }));
-      onStatusChange(term.id, "running", null, 0);
+      onStatusChange(term.id, "running", null);
     };
 
     ws.onmessage = (event) => {
@@ -647,31 +672,12 @@ function TerminalInstanceWithRegistry({
         const msg = JSON.parse(event.data);
         if (msg.type === "output" && msg.data) {
           xterm.write(base64ToUint8Array(msg.data));
-          const buf = xterm.buffer.active;
-          let lines = 0;
-          for (let i = buf.length - 1; i >= 0; i--) {
-            const line = buf.getLine(i);
-            if (line && line.translateToString(true).trim()) {
-              lines = i + 1;
-              break;
-            }
-          }
-          onStatusChange(term.id, "running", null, lines);
         } else if (msg.type === "exit") {
           const code = parseInt(msg.data, 10) || 0;
-          const buf = xterm.buffer.active;
-          let lines = 0;
-          for (let i = buf.length - 1; i >= 0; i--) {
-            const line = buf.getLine(i);
-            if (line && line.translateToString(true).trim()) {
-              lines = i + 1;
-              break;
-            }
-          }
-          onStatusChange(term.id, "exited", code, lines);
+          onStatusChange(term.id, "exited", code);
         } else if (msg.type === "error") {
           xterm.write(`\r\n\x1b[31mError: ${msg.data}\x1b[0m\r\n`);
-          onStatusChange(term.id, "error", null, 0);
+          onStatusChange(term.id, "error", null);
         }
       } catch (err) {
         console.error("Failed to parse terminal message:", err);
@@ -680,7 +686,7 @@ function TerminalInstanceWithRegistry({
 
     ws.onerror = (event) => console.error("WebSocket error:", event);
     ws.onclose = () => {
-      onStatusChange(term.id, "exited", null, -1);
+      onStatusChange(term.id, "exited", null);
     };
 
     xterm.onData((data) => {

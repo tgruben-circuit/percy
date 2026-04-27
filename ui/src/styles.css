@@ -61,6 +61,15 @@ body {
   --gray-700: #374151;
   --gray-800: #1f2937;
   --gray-900: #111827;
+  --window-bg: var(--bg-base);
+}
+
+.window-orange {
+  --window-bg: #7c2d12;
+}
+
+.window-green {
+  --window-bg: #14532d;
 }
 
 .dark {
@@ -392,7 +401,7 @@ button {
 /* Header */
 .header {
   flex: 0 0 auto;
-  background: var(--bg-base);
+  background: var(--window-bg);
   border-bottom: 1px solid var(--border);
   padding: 0.5rem 1rem;
   padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
@@ -437,7 +446,7 @@ button {
   z-index: 50;
   width: 20rem;
   max-width: calc(100vw - 3rem); /* Ensure drawer doesn't fill entire screen on mobile */
-  background: var(--bg-base);
+  background: var(--window-bg);
   border-right: 1px solid var(--border);
   color: var(--text-primary);
   display: flex;
@@ -2054,7 +2063,7 @@ select:disabled {
 /* Unified Status Bar */
 .status-bar {
   flex: 0 0 auto;
-  background: var(--bg-base);
+  background: var(--window-bg);
   border-top: 1px solid var(--border);
   padding: 0.5rem 1rem;
   padding-left: max(1rem, env(safe-area-inset-left));
@@ -4935,6 +4944,17 @@ kbd {
   min-height: 80px;
   max-height: 800px;
   overflow: hidden;
+}
+
+.terminal-panel-minimized {
+  min-height: unset;
+  max-height: unset;
+  height: auto;
+  flex-shrink: 0;
+}
+
+.terminal-panel-minimized .terminal-panel-header {
+  border-bottom: none;
 }
 
 .terminal-panel-resize-handle {
