@@ -480,6 +480,11 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	// Cluster API
 	mux.Handle("GET /api/cluster/status", http.HandlerFunc(s.handleClusterStatus))
 
+	// Web push API
+	mux.Handle("GET /api/push/vapid-public-key", http.HandlerFunc(s.handlePushVapidKey))
+	mux.Handle("POST /api/push/subscribe", http.HandlerFunc(s.handlePushSubscribe))
+	mux.Handle("POST /api/push/unsubscribe", http.HandlerFunc(s.handlePushUnsubscribe))
+
 	// Models API (dynamic list refresh)
 	mux.Handle("GET /api/usage", gzipHandler(http.HandlerFunc(s.handleUsage)))
 	mux.Handle("/api/models", http.HandlerFunc(s.handleModels))
@@ -1338,6 +1343,11 @@ func (s *Server) StartWithListener(listener net.Listener) error {
 		BaseContext: func(_ net.Listener) context.Context {
 			return baseCtx
 		},
+	}
+
+	// Initialize web push (generates VAPID keys if needed)
+	if err := s.initWebPush(); err != nil {
+		s.logger.Warn("Web push initialization failed", "error", err)
 	}
 
 	// Start cleanup routine
