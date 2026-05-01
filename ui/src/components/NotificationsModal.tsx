@@ -426,7 +426,7 @@ function NotificationsModal({ isOpen, onClose }: NotificationsModalProps) {
                     setWebPushBusy(false);
                   }}
                 >
-                  {webPushBusy ? "..." : t("on")}
+                  {webPushBusy ? "..." : "Disable"}
                 </button>
               ) : webPushState === "denied" ? (
                 <span className="notifications-denied-text">{t("denied")}</span>

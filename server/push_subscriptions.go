@@ -85,7 +85,7 @@ func (s *Server) handlePushSubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := "push-" + uuid.New().String()[:8]
+	id := "push-" + uuid.NewString()
 	if err := s.db.CreatePushSubscription(r.Context(), id, req.Endpoint, req.P256DH, req.Auth, req.UserAgent); err != nil {
 		s.logger.Error("Failed to create push subscription", "error", err)
 		http.Error(w, "Failed to store subscription", http.StatusInternalServerError)

@@ -47,6 +47,10 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
+self.addEventListener("install", (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
 // Take control of all pages immediately on activation
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
