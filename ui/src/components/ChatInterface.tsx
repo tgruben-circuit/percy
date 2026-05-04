@@ -9,6 +9,12 @@ import {
 } from "../types";
 import { api, ApiError } from "../services/api";
 import { ThemeMode, getStoredTheme, setStoredTheme, applyTheme } from "../services/theme";
+import {
+  WindowColor,
+  getStoredWindowColor,
+  setStoredWindowColor,
+  applyWindowColor,
+} from "../services/windowColor";
 import { setFaviconStatus } from "../services/favicon";
 import {
   handleNotificationEvent,
@@ -680,6 +686,7 @@ function ChatInterface({
   // Settings modal removed - configuration moved to status bar for empty conversations
   const [showOverflowMenu, setShowOverflowMenu] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(getStoredTheme);
+  const [windowColor, setWindowColor] = useState<WindowColor>(getStoredWindowColor);
   const [browserNotifsEnabled, setBrowserNotifsEnabled] = useState(() =>
     isChannelEnabled("browser"),
   );
@@ -1870,6 +1877,67 @@ function ChatInterface({
                         d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
                       />
                     </svg>
+                  </button>
+                </div>
+
+                {/* Window color selector */}
+                <div className="overflow-menu-divider" />
+                <div className="theme-toggle-row">
+                  <button
+                    onClick={() => {
+                      setWindowColor("default");
+                      setStoredWindowColor("default");
+                      applyWindowColor("default");
+                    }}
+                    className={`theme-toggle-btn${windowColor === "default" ? " theme-toggle-btn-selected" : ""}`}
+                    title="Default window color"
+                  >
+                    <span
+                      style={{
+                        width: "1.125rem",
+                        height: "1.125rem",
+                        borderRadius: "9999px",
+                        background:
+                          "linear-gradient(135deg, #f9fafb 0%, #f9fafb 50%, #111827 50%, #111827 100%)",
+                        border: "1px solid var(--border)",
+                      }}
+                    />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setWindowColor("orange");
+                      setStoredWindowColor("orange");
+                      applyWindowColor("orange");
+                    }}
+                    className={`theme-toggle-btn${windowColor === "orange" ? " theme-toggle-btn-selected" : ""}`}
+                    title="Dark orange window"
+                  >
+                    <span
+                      style={{
+                        width: "1.125rem",
+                        height: "1.125rem",
+                        borderRadius: "9999px",
+                        background: "#7c2d12",
+                      }}
+                    />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setWindowColor("green");
+                      setStoredWindowColor("green");
+                      applyWindowColor("green");
+                    }}
+                    className={`theme-toggle-btn${windowColor === "green" ? " theme-toggle-btn-selected" : ""}`}
+                    title="Dark green window"
+                  >
+                    <span
+                      style={{
+                        width: "1.125rem",
+                        height: "1.125rem",
+                        borderRadius: "9999px",
+                        background: "#14532d",
+                      }}
+                    />
                   </button>
                 </div>
 
