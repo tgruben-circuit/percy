@@ -77,6 +77,11 @@ func (s *Server) handleEditMessage(w http.ResponseWriter, r *http.Request, conve
 	if conv.Model != nil {
 		modelID = *conv.Model
 	}
+	modelID, err = s.resolveModelID(modelID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Model unavailable: %s", modelID), http.StatusBadRequest)
+		return
+	}
 
 	service, err := s.llmManager.GetService(modelID)
 	if err != nil {
@@ -188,6 +193,11 @@ func (s *Server) handleRegenerateMessage(w http.ResponseWriter, r *http.Request,
 	modelID := s.defaultModel
 	if conv.Model != nil {
 		modelID = *conv.Model
+	}
+	modelID, err = s.resolveModelID(modelID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Model unavailable: %s", modelID), http.StatusBadRequest)
+		return
 	}
 
 	service, err := s.llmManager.GetService(modelID)

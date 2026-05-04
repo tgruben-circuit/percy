@@ -51,6 +51,10 @@ func (s *Server) executeClusterTask(ctx context.Context, task cluster.Task) clus
 	slug := fmt.Sprintf("task-%s", taskID)
 	cwd := worktreeDir
 	modelID := s.defaultModel
+	modelID, err = s.resolveModelID(modelID)
+	if err != nil {
+		return cluster.TaskResult{Summary: fmt.Sprintf("model resolution failed: %v", err)}
+	}
 	conv, err := s.db.CreateConversation(ctx, &slug, false, &cwd, &modelID)
 	if err != nil {
 		s.logger.Error("Failed to create conversation", "task", taskID, "error", err)

@@ -83,6 +83,10 @@ type LLMProvider interface {
 	RefreshCustomModels() error
 }
 
+type modelResolver interface {
+	ResolveModelID(modelID string) (string, error)
+}
+
 // NewLLMServiceManager creates a new LLM service manager from config
 func NewLLMServiceManager(cfg *LLMConfig) LLMProvider {
 	// Convert LLMConfig to models.Config
@@ -267,6 +271,19 @@ func NewServer(database *db.DB, llmManager LLMProvider, toolSetConfig claudetool
 	s.toolSetConfig.MaxSubagentDepth = 1 // Only top-level conversations can spawn subagents
 
 	return s
+}
+
+func (s *Server) resolveModelID(modelID string) (string, error) {
+	if modelID == "" {
+		return "", fmt.Errorf("model is required")
+	}
+	if resolver, ok := s.llmManager.(modelResolver); ok {
+		return resolver.ResolveModelID(modelID)
+	}
+	if s.llmManager.HasModel(modelID) {
+		return modelID, nil
+	}
+	return "", fmt.Errorf("unsupported model: %s", modelID)
 }
 
 // SetMemoryDB sets the memory database for post-conversation indexing.

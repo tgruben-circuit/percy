@@ -30,6 +30,10 @@ type LLMConfig struct {
 	// DefaultModel is the default model to use (optional, defaults to models.Default())
 	DefaultModel string
 
+	// TodoVerifierModel is the model selector used to verify TODO task completion.
+	// Empty disables todo verification.
+	TodoVerifierModel string
+
 	// Links are custom links to be displayed in the UI (optional)
 	Links []Link
 

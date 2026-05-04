@@ -30,9 +30,11 @@ func (s *Server) startClusterMonitor() {
 	}
 
 	var resolver cluster.ConflictResolver
-	llmService, err := s.llmManager.GetService(s.defaultModel)
-	if err == nil {
-		resolver = cluster.NewLLMConflictResolver(llmService)
+	if modelID, err := s.resolveModelID(s.defaultModel); err == nil {
+		llmService, err := s.llmManager.GetService(modelID)
+		if err == nil {
+			resolver = cluster.NewLLMConflictResolver(llmService)
+		}
 	}
 
 	mon := cluster.NewMonitor(s.clusterNode, orch, mw, resolver)

@@ -45,6 +45,10 @@ func (r *SubagentRunner) RunSubagent(ctx context.Context, conversationID, prompt
 	if modelID == "" && s.predictableOnly {
 		modelID = "predictable"
 	}
+	modelID, err = s.resolveModelID(modelID)
+	if err != nil {
+		return "", err
+	}
 
 	// Get LLM service
 	llmService, err := s.llmManager.GetService(modelID)

@@ -7,13 +7,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/tgruben-circuit/percy/llm"
 )
 
 // TodoWriteTool manages a TODO.md checklist in the working directory.
 type TodoWriteTool struct {
-	WorkingDir *MutableWorkingDir
+	WorkingDir           *MutableWorkingDir
+	DB                   SubagentDB
+	ParentConversationID string
+	Runner               SubagentRunner
+	VerifierModel        string
+	VerifierEnabled      bool
 }
 
 const (
@@ -86,7 +92,7 @@ func (t *TodoWriteTool) Run(ctx context.Context, m json.RawMessage) llm.ToolOut 
 	case "add":
 		return t.add(todoPath, req.Task)
 	case "update_status":
-		return t.updateStatus(todoPath, req.TaskID, req.Status)
+		return t.updateStatus(ctx, todoPath, req.TaskID, req.Status)
 	case "list":
 		return t.list(todoPath)
 	default:
@@ -118,7 +124,7 @@ func (t *TodoWriteTool) add(todoPath, task string) llm.ToolOut {
 	}
 }
 
-func (t *TodoWriteTool) updateStatus(todoPath string, taskID int, status string) llm.ToolOut {
+func (t *TodoWriteTool) updateStatus(ctx context.Context, todoPath string, taskID int, status string) llm.ToolOut {
 	if taskID < 1 {
 		return llm.ErrorfToolOut("task_id must be >= 1")
 	}
@@ -146,6 +152,7 @@ func (t *TodoWriteTool) updateStatus(todoPath string, taskID int, status string)
 	lines := strings.Split(string(data), "\n")
 	checklistIndex := 0
 	found := false
+	taskText := ""
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "- [ ] ") || strings.HasPrefix(trimmed, "- [x] ") || strings.HasPrefix(trimmed, "- [~] ") {
@@ -154,7 +161,12 @@ func (t *TodoWriteTool) updateStatus(todoPath string, taskID int, status string)
 				// Replace the checkbox marker, preserving leading whitespace.
 				prefix := line[:len(line)-len(trimmed)]
 				// Extract task text after "- [.] "
-				taskText := trimmed[6:]
+				taskText = trimmed[6:]
+				if status == "done" {
+					if out := t.verifyDone(ctx, taskID, taskText, string(data)); out.Error != nil {
+						return out
+					}
+				}
 				lines[i] = fmt.Sprintf("%s- %s %s", prefix, marker, taskText)
 				found = true
 				break
@@ -173,6 +185,43 @@ func (t *TodoWriteTool) updateStatus(todoPath string, taskID int, status string)
 	return llm.ToolOut{
 		LLMContent: llm.TextContent(fmt.Sprintf("Updated task %d to %s", taskID, status)),
 	}
+}
+
+func (t *TodoWriteTool) verifyDone(ctx context.Context, taskID int, taskText, todoContent string) llm.ToolOut {
+	if !t.VerifierEnabled || t.VerifierModel == "" {
+		return llm.ToolOut{}
+	}
+	if t.DB == nil || t.Runner == nil || t.ParentConversationID == "" {
+		return llm.ErrorfToolOut("todo verification is configured but subagent support is unavailable")
+	}
+
+	conversationID, _, err := t.DB.GetOrCreateSubagentConversation(ctx, fmt.Sprintf("todo-verify-%d", taskID), t.ParentConversationID, t.WorkingDir.Get())
+	if err != nil {
+		return llm.ErrorfToolOut("failed to get/create todo verifier: %w", err)
+	}
+
+	prompt := fmt.Sprintf(`You are verifying whether a TODO.md task is actually complete.
+
+Task %d:
+%s
+
+Current TODO.md:
+%s
+
+Inspect the repository as needed. Decide whether the task is complete according to the code, tests, and requested behavior.
+
+Reply with exactly one of these formats:
+VERDICT: PASS
+VERDICT: FAIL - <specific reason>`, taskID, taskText, todoContent)
+
+	response, err := t.Runner.RunSubagent(ctx, conversationID, prompt, true, 300*time.Second, t.VerifierModel)
+	if err != nil {
+		return llm.ErrorfToolOut("todo verification failed: %w", err)
+	}
+	if strings.TrimSpace(response) != "VERDICT: PASS" {
+		return llm.ErrorfToolOut("todo verification rejected task %d: %s", taskID, response)
+	}
+	return llm.ToolOut{}
 }
 
 func (t *TodoWriteTool) list(todoPath string) llm.ToolOut {

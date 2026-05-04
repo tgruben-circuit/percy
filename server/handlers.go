@@ -368,6 +368,9 @@ func (s *Server) serveIndexWithInit(w http.ResponseWriter, r *http.Request, fs h
 		if defaultModel == "" {
 			defaultModel = models.Default().ID
 		}
+		if resolved, err := s.resolveModelID(defaultModel); err == nil {
+			defaultModel = resolved
+		}
 		defaultModelAvailable := false
 		for _, m := range modelList {
 			if m.ID == defaultModel && m.Ready {
@@ -637,6 +640,12 @@ func (s *Server) handleChatConversation(w http.ResponseWriter, r *http.Request, 
 	if modelID == "" {
 		modelID = s.defaultModel
 	}
+	modelID, err := s.resolveModelID(modelID)
+	if err != nil {
+		s.logger.Error("Unsupported model requested", "model", modelID, "error", err)
+		http.Error(w, fmt.Sprintf("Unsupported model: %s", modelID), http.StatusBadRequest)
+		return
+	}
 
 	llmService, err := s.llmManager.GetService(modelID)
 	if err != nil {
@@ -718,8 +727,16 @@ func (s *Server) handleNewConversation(w http.ResponseWriter, r *http.Request) {
 	// Get LLM service for the requested model
 	modelID := req.Model
 	if modelID == "" {
-		// Default to Qwen3 Coder on Fireworks
-		modelID = "qwen3-coder-fireworks"
+		modelID = s.defaultModel
+	}
+	if modelID == "" {
+		modelID = models.Default().ID
+	}
+	modelID, err := s.resolveModelID(modelID)
+	if err != nil {
+		s.logger.Error("Unsupported model requested", "model", modelID, "error", err)
+		http.Error(w, fmt.Sprintf("Unsupported model: %s", modelID), http.StatusBadRequest)
+		return
 	}
 
 	llmService, err := s.llmManager.GetService(modelID)
@@ -860,7 +877,16 @@ func (s *Server) handleContinueConversation(w http.ResponseWriter, r *http.Reque
 		modelID = *sourceConv.Model
 	}
 	if modelID == "" {
-		modelID = "qwen3-coder-fireworks"
+		modelID = s.defaultModel
+	}
+	if modelID == "" {
+		modelID = models.Default().ID
+	}
+	modelID, err = s.resolveModelID(modelID)
+	if err != nil {
+		s.logger.Error("Unsupported model requested", "model", modelID, "error", err)
+		http.Error(w, fmt.Sprintf("Unsupported model: %s", modelID), http.StatusBadRequest)
+		return
 	}
 
 	// Create new conversation with cwd from request or source conversation
@@ -1036,9 +1062,14 @@ func (s *Server) handleSwitchModelConversation(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	service, err := s.llmManager.GetService(req.Model)
+	modelID, err := s.resolveModelID(req.Model)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Unsupported model: %s", req.Model), http.StatusBadRequest)
+		return
+	}
+	service, err := s.llmManager.GetService(modelID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Unsupported model: %s", modelID), http.StatusBadRequest)
 		return
 	}
 
@@ -1063,7 +1094,7 @@ func (s *Server) handleSwitchModelConversation(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err := manager.SwitchModel(r.Context(), service, req.Model, req.CancelCurrentTurn); err != nil {
+	if err := manager.SwitchModel(r.Context(), service, modelID, req.CancelCurrentTurn); err != nil {
 		if errors.Is(err, errSwitchModelConflict) {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return

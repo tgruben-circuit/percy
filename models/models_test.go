@@ -286,6 +286,52 @@ func TestManagerGetService(t *testing.T) {
 	}
 }
 
+func TestManagerResolveModelID(t *testing.T) {
+	cfg := &Config{
+		AnthropicAPIKey: "test-key",
+		OpenAIAPIKey:    "test-key",
+	}
+
+	manager, err := NewManager(cfg)
+	if err != nil {
+		t.Fatalf("NewManager failed: %v", err)
+	}
+
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{input: "latest:planner", want: "claude-opus-4.6"},
+		{input: "latest:claude-opus", want: "claude-opus-4.6"},
+		{input: "latest:verifier", want: "gpt-5.3-codex"},
+		{input: "latest:gpt-codex", want: "gpt-5.3-codex"},
+		{input: "gpt-5.2-codex", want: "gpt-5.2-codex"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got, err := manager.ResolveModelID(tt.input)
+			if err != nil {
+				t.Fatalf("ResolveModelID(%q) returned error: %v", tt.input, err)
+			}
+			if got != tt.want {
+				t.Errorf("ResolveModelID(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestManagerResolveModelIDUnavailable(t *testing.T) {
+	manager, err := NewManager(&Config{})
+	if err != nil {
+		t.Fatalf("NewManager failed: %v", err)
+	}
+
+	if _, err := manager.ResolveModelID("latest:verifier"); err == nil {
+		t.Fatal("expected latest:verifier to fail without an available codex model")
+	}
+}
+
 func TestManagerHasModel(t *testing.T) {
 	cfg := &Config{}
 

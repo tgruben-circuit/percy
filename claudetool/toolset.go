@@ -73,6 +73,9 @@ type ToolSetConfig struct {
 	// A value of 0 means no limit (but SubagentRunner/SubagentDB must still be set).
 	// Set to 1 to allow only top-level conversations (depth 0) to spawn subagents.
 	MaxSubagentDepth int
+	// TodoVerifierModel is the model selector used to verify todo completion.
+	// Empty disables todo verification.
+	TodoVerifierModel string
 	// MemorySearchTool is the pre-built memory search tool. If set, it's added to the tool set.
 	MemorySearchTool *llm.Tool
 	// AvailableSkills is the list of discovered skills. If non-empty, the skill_load tool is registered.
@@ -190,8 +193,16 @@ func NewToolSet(ctx context.Context, cfg ToolSetConfig) *ToolSet {
 		tools = append(tools, subTool)
 	}
 
-	// Register todo_write tool
-	todoWriteTool := &TodoWriteTool{WorkingDir: wd}
+	// Register todo_write tool. Todo verification is top-level only to avoid
+	// verifier subagents recursively spawning verifier subagents.
+	todoWriteTool := &TodoWriteTool{
+		WorkingDir:           wd,
+		DB:                   cfg.SubagentDB,
+		ParentConversationID: cfg.ParentConversationID,
+		Runner:               cfg.SubagentRunner,
+		VerifierModel:        cfg.TodoVerifierModel,
+		VerifierEnabled:      cfg.SubagentDepth == 0,
+	}
 	tools = append(tools, todoWriteTool.Tool())
 
 	// Register skill_load tool if skills are available

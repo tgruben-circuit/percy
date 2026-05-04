@@ -16,9 +16,9 @@ import (
 	"github.com/tgruben-circuit/percy/claudetool"
 	memtool "github.com/tgruben-circuit/percy/claudetool/memory"
 	"github.com/tgruben-circuit/percy/cluster"
-	"github.com/tgruben-circuit/percy/memory/muninn"
 	"github.com/tgruben-circuit/percy/db"
 	"github.com/tgruben-circuit/percy/memory"
+	"github.com/tgruben-circuit/percy/memory/muninn"
 	"github.com/tgruben-circuit/percy/models"
 	"github.com/tgruben-circuit/percy/server"
 	_ "github.com/tgruben-circuit/percy/server/notifications/channels" // register channel types
@@ -35,6 +35,7 @@ type GlobalConfig struct {
 	ConfigPath      string
 	TerminalURL     string
 	DefaultModel    string
+	DefaultModelSet bool
 }
 
 func main() {
@@ -63,6 +64,11 @@ func main() {
 
 	// Parse all flags first
 	flag.Parse()
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "default-model" {
+			global.DefaultModelSet = true
+		}
+	})
 	args := flag.Args()
 
 	if len(args) == 0 {
@@ -120,7 +126,7 @@ func runServe(global GlobalConfig, args []string) {
 	server.DBPath = global.DBPath
 
 	// Build LLM configuration
-	llmConfig := buildLLMConfig(logger, global.ConfigPath, global.TerminalURL, global.DefaultModel, database)
+	llmConfig := buildLLMConfig(logger, global.ConfigPath, global.TerminalURL, global.DefaultModel, global.DefaultModelSet, database)
 
 	// Initialize LLM service manager (includes custom model support via database)
 	llmManager := server.NewLLMServiceManager(llmConfig)
@@ -130,6 +136,7 @@ func runServe(global GlobalConfig, args []string) {
 	logger.Info("Available models", "models", strings.Join(availableModels, ", "))
 
 	toolSetConfig := setupToolSetConfig(llmManager)
+	toolSetConfig.TodoVerifierModel = llmConfig.TodoVerifierModel
 
 	// Create embedder if configured
 	var embedder memory.Embedder
@@ -381,7 +388,7 @@ func setupToolSetConfig(llmProvider claudetool.LLMServiceProvider) claudetool.To
 }
 
 // buildLLMConfig constructs LLMConfig from environment variables and optional config file
-func buildLLMConfig(logger *slog.Logger, configPath, terminalURL, defaultModel string, database *db.DB) *server.LLMConfig {
+func buildLLMConfig(logger *slog.Logger, configPath, terminalURL, defaultModel string, defaultModelSet bool, database *db.DB) *server.LLMConfig {
 	// Ollama URL: env var > default
 	ollamaURL := os.Getenv("OLLAMA_URL")
 	if ollamaURL == "" {
@@ -413,6 +420,7 @@ func buildLLMConfig(logger *slog.Logger, configPath, terminalURL, defaultModel s
 			LLMGateway           string           `json:"llm_gateway"`
 			TerminalURL          string           `json:"terminal_url"`
 			DefaultModel         string           `json:"default_model"`
+			TodoVerifierModel    string           `json:"todo_verifier_model"`
 			Links                []server.Link    `json:"links"`
 			NotificationChannels []map[string]any `json:"notification_channels"`
 		}
@@ -448,9 +456,14 @@ func buildLLMConfig(logger *slog.Logger, configPath, terminalURL, defaultModel s
 		}
 
 		// Override default model from config file if present and not already set via flag
-		if cfg.DefaultModel != "" && llmCfg.DefaultModel == "" {
+		if cfg.DefaultModel != "" && !defaultModelSet {
 			llmCfg.DefaultModel = cfg.DefaultModel
 			logger.Info("Using default model from config", "model", cfg.DefaultModel)
+		}
+
+		if cfg.TodoVerifierModel != "" {
+			llmCfg.TodoVerifierModel = cfg.TodoVerifierModel
+			logger.Info("Using todo verifier model from config", "model", cfg.TodoVerifierModel)
 		}
 
 		// Load links from config file if present

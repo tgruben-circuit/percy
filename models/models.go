@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/tgruben-circuit/percy/db"
@@ -713,6 +714,12 @@ func (m *Manager) RefreshCustomModels() error {
 
 // GetService returns the LLM service for the given model ID, wrapped with logging
 func (m *Manager) GetService(modelID string) (llm.Service, error) {
+	resolved, err := m.ResolveModelID(modelID)
+	if err != nil {
+		return nil, err
+	}
+	modelID = resolved
+
 	entry, ok := m.services[modelID]
 	if !ok {
 		return nil, fmt.Errorf("unsupported model: %s", modelID)
@@ -729,6 +736,39 @@ func (m *Manager) GetService(modelID string) (llm.Service, error) {
 		}, nil
 	}
 	return entry.service, nil
+}
+
+// ResolveModelID resolves symbolic model selectors to concrete available model IDs.
+func (m *Manager) ResolveModelID(modelID string) (string, error) {
+	switch modelID {
+	case "latest:claude-opus", "latest:planner":
+		return m.firstAvailablePrefix("claude-opus-")
+	case "latest:gpt-codex", "latest:verifier":
+		return m.firstAvailableContains("-codex")
+	default:
+		if m.HasModel(modelID) {
+			return modelID, nil
+		}
+		return "", fmt.Errorf("unsupported model: %s", modelID)
+	}
+}
+
+func (m *Manager) firstAvailablePrefix(prefix string) (string, error) {
+	for _, id := range m.modelOrder {
+		if strings.HasPrefix(id, prefix) {
+			return id, nil
+		}
+	}
+	return "", fmt.Errorf("no available model matching prefix %q", prefix)
+}
+
+func (m *Manager) firstAvailableContains(substr string) (string, error) {
+	for _, id := range m.modelOrder {
+		if strings.Contains(id, substr) {
+			return id, nil
+		}
+	}
+	return "", fmt.Errorf("no available model containing %q", substr)
 }
 
 // GetAvailableModels returns a list of available model IDs.

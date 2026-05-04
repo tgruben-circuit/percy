@@ -12,6 +12,7 @@ import (
 	"github.com/tgruben-circuit/percy/db"
 	"github.com/tgruben-circuit/percy/db/generated"
 	"github.com/tgruben-circuit/percy/llm"
+	"github.com/tgruben-circuit/percy/models"
 	"github.com/tgruben-circuit/percy/slug"
 )
 
@@ -100,7 +101,16 @@ func (s *Server) handleDistillConversation(w http.ResponseWriter, r *http.Reques
 		modelID = *sourceConv.Model
 	}
 	if modelID == "" {
-		modelID = "qwen3-coder-fireworks"
+		modelID = s.defaultModel
+	}
+	if modelID == "" {
+		modelID = models.Default().ID
+	}
+	modelID, err = s.resolveModelID(modelID)
+	if err != nil {
+		s.logger.Error("Unsupported model requested", "model", modelID, "error", err)
+		http.Error(w, fmt.Sprintf("Unsupported model: %s", modelID), http.StatusBadRequest)
+		return
 	}
 
 	// Create new conversation
