@@ -50,6 +50,20 @@ print(f"Found {len(results)} files with TODOs: {', '.join(results)}")
 
 Requires `uv` (Python package manager) in PATH.
 
+### Concurrent Tool Execution
+
+When the model returns several tool calls in one turn, parallel-safe tools run concurrently via a goroutine pool sized to `GOMAXPROCS`, while side-effecting tools run sequentially after. Results merge back in original call order so the model never sees reordering.
+
+Concurrent-safe: `read`, `keyword`, `subagent`, `browse`, `lsp`, `dispatch`. Sequential: `bash`, `patch`, `changedir`, `output_iframe`, `todo_write`, `skill_load`. Tool authors opt in by setting `Concurrent: true` on the `llm.Tool`.
+
+### Deferred Tool Loading
+
+Heavy or rarely-used tools (browser automation, LSP) are registered as `Deferred` and grouped by `Category`. They don't take up tokens in the system prompt by default — instead, the agent calls a `request_tools` meta-tool with a category name to activate them on demand. This keeps the default tool roster small and lets domain-specific capabilities load only when the conversation actually needs them.
+
+### Conversation Model Switching
+
+Switch the model on an existing conversation mid-flight via `POST /api/conversation/<id>/switch-model` (or the model picker in the UI, which stays visible during an active turn). The server force-sets the conversation's model, the next turn picks it up, and the picker is provider-independent — Anthropic, OpenAI, Gemini, Ollama all interchangeable on the same conversation history.
+
 ### Context Window Management
 
 Proactive monitoring of LLM context usage with warnings at 80% capacity, automatic retry on response truncation (up to 2 retries), and increased max output tokens (16,384) for longer responses.
@@ -93,7 +107,13 @@ Agent responses containing markdown tables are rendered as styled, readable HTML
 
 ### Notification Channels
 
-Get notified when the agent finishes work. Supports Discord webhooks and email, with a test endpoint to verify connectivity. Channels are configurable via the API and persist in the database.
+Get notified when the agent finishes work or hits an error. Supports:
+
+- **Discord** webhooks
+- **Email** (via the local gateway)
+- **Web Push** — true push notifications to macOS, iOS, Android, and any browser that implements the Web Push standard. Percy generates a VAPID keypair on first run, registers a service worker, and dispatches notifications via `webpush-go`. Tap a notification to jump straight to the conversation.
+
+Channels are configurable via the API or the Notifications modal in the UI, and they persist in the database. A test endpoint verifies connectivity before you commit a configuration.
 
 ## Installation
 
