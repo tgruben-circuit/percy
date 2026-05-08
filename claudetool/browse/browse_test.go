@@ -84,8 +84,8 @@ func TestGetTools(t *testing.T) {
 	// Test with screenshot tools included
 	t.Run("with screenshots", func(t *testing.T) {
 		toolsWithScreenshots := tools.GetTools(true)
-		if len(toolsWithScreenshots) != 7 {
-			t.Errorf("expected 7 tools with screenshots, got %d", len(toolsWithScreenshots))
+		if len(toolsWithScreenshots) != 11 {
+			t.Errorf("expected 11 tools with screenshots, got %d", len(toolsWithScreenshots))
 		}
 
 		// Check tool naming convention
@@ -100,8 +100,8 @@ func TestGetTools(t *testing.T) {
 	// Test without screenshot tools
 	t.Run("without screenshots", func(t *testing.T) {
 		noScreenshotTools := tools.GetTools(false)
-		if len(noScreenshotTools) != 5 {
-			t.Errorf("expected 5 tools without screenshots, got %d", len(noScreenshotTools))
+		if len(noScreenshotTools) != 9 {
+			t.Errorf("expected 9 tools without screenshots, got %d", len(noScreenshotTools))
 		}
 	})
 }
@@ -665,16 +665,16 @@ func TestRegisterBrowserTools(t *testing.T) {
 	tools, cleanup := RegisterBrowserTools(ctx, true, 0)
 	t.Cleanup(cleanup)
 
-	if len(tools) != 7 {
-		t.Errorf("Expected 7 tools with screenshots, got %d", len(tools))
+	if len(tools) != 11 {
+		t.Errorf("Expected 11 tools with screenshots, got %d", len(tools))
 	}
 
 	// Test with screenshots disabled
 	tools, cleanup = RegisterBrowserTools(ctx, false, 0)
 	t.Cleanup(cleanup)
 
-	if len(tools) != 5 {
-		t.Errorf("Expected 5 tools without screenshots, got %d", len(tools))
+	if len(tools) != 9 {
+		t.Errorf("Expected 9 tools without screenshots, got %d", len(tools))
 	}
 
 	// Verify that cleanup function works (doesn't panic)

@@ -16,7 +16,9 @@ import (
 	"time"
 
 	"github.com/chromedp/cdproto/browser"
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/runtime"
+	"github.com/chromedp/cdproto/tracing"
 	"github.com/chromedp/chromedp"
 	"github.com/google/uuid"
 	"github.com/tgruben-circuit/percy/llm"
@@ -72,6 +74,17 @@ type BrowseTools struct {
 	downloads      map[string]*DownloadInfo // keyed by GUID
 	downloadsMutex sync.Mutex
 	downloadCond   *sync.Cond
+	// Network monitoring
+	networkEnabled     bool
+	networkRequests    []*NetworkRequest
+	networkMutex       sync.Mutex
+	maxNetworkRequests int
+	// Profiling state
+	profilingActive bool
+	tracingActive   bool
+	traceEvents     []json.RawMessage
+	traceCompleteCh chan struct{}
+	traceMutex      sync.Mutex
 }
 
 // NewBrowseTools creates a new set of browser automation tools.
@@ -137,7 +150,7 @@ func (b *BrowseTools) GetBrowserContext() (context.Context, error) {
 		chromedp.WithBrowserOption(chromedp.WithDialTimeout(60*time.Second)),
 	)
 
-	// Set up event listeners for console logs and downloads
+	// Set up event listeners for console logs, downloads, network, and tracing.
 	chromedp.ListenTarget(browserCtx, func(ev any) {
 		switch e := ev.(type) {
 		case *runtime.EventConsoleAPICalled:
@@ -146,6 +159,44 @@ func (b *BrowseTools) GetBrowserContext() (context.Context, error) {
 			b.handleDownloadWillBegin(e)
 		case *browser.EventDownloadProgress:
 			b.handleDownloadProgress(e)
+		case *network.EventRequestWillBeSent:
+			b.networkMutex.Lock()
+			enabled := b.networkEnabled
+			b.networkMutex.Unlock()
+			if enabled {
+				b.captureNetworkRequest(e)
+			}
+		case *network.EventResponseReceived:
+			b.networkMutex.Lock()
+			enabled := b.networkEnabled
+			b.networkMutex.Unlock()
+			if enabled {
+				b.captureNetworkResponse(e)
+			}
+		case *network.EventLoadingFinished:
+			b.networkMutex.Lock()
+			enabled := b.networkEnabled
+			b.networkMutex.Unlock()
+			if enabled {
+				b.captureNetworkFinished(e)
+			}
+		case *tracing.EventDataCollected:
+			b.traceMutex.Lock()
+			if b.tracingActive {
+				for _, v := range e.Value {
+					b.traceEvents = append(b.traceEvents, json.RawMessage(v))
+				}
+			}
+			b.traceMutex.Unlock()
+		case *tracing.EventTracingComplete:
+			b.traceMutex.Lock()
+			if b.traceCompleteCh != nil {
+				select {
+				case b.traceCompleteCh <- struct{}{}:
+				default:
+				}
+			}
+			b.traceMutex.Unlock()
 		}
 	})
 
@@ -594,6 +645,10 @@ func (b *BrowseTools) GetTools(includeScreenshotTools bool) []*llm.Tool {
 		b.NewResizeTool(),
 		b.NewRecentConsoleLogsTool(),
 		b.NewClearConsoleLogsTool(),
+		b.EmulateTool(),
+		b.NetworkTool(),
+		b.AccessibilityTool(),
+		b.ProfileTool(),
 	}
 
 	// Add screenshot-related tools if supported
