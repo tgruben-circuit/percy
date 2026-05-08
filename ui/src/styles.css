@@ -576,6 +576,8 @@ button {
   padding: 1rem;
   padding-left: max(1rem, env(safe-area-inset-left));
   padding-right: max(1rem, env(safe-area-inset-right));
+  font-family: "MesloLGS Nerd Font Mono", "MesloLGS NF", monospace;
+  font-size: 20px;
 }
 
 .messages-list {
