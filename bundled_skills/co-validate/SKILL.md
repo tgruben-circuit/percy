@@ -15,7 +15,7 @@ Get a staff engineer review of a plan from a different model, compare against yo
    ```
    subagent tool call:
      slug: "co-validate"
-     model: "gpt-5.3-codex"
+     model: "gpt-5.5"
      wait: false
      timeout_seconds: 300
      prompt: |
@@ -59,6 +59,6 @@ Get a staff engineer review of a plan from a different model, compare against yo
 ## Error Handling
 
 If the subagent model is not available, tell the user:
-"The co-validate skill requires the gpt-5.3-codex model. Please configure your OpenAI API key to use this skill."
+"The co-validate skill requires the gpt-5.5 model. Please configure your OpenAI API key to use this skill."
 
 Do NOT fall back to the same model.

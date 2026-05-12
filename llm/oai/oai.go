@@ -321,6 +321,13 @@ var (
 		APIKeyEnv: OpenAIAPIKeyEnv,
 	}
 
+	GPT55 = Model{
+		UserName:  "gpt-5.5",
+		ModelName: "gpt-5.5",
+		URL:       OpenAIURL,
+		APIKeyEnv: OpenAIAPIKeyEnv,
+	}
+
 	// Skaband-specific model names.
 	// Provider details (URL and APIKeyEnv) are handled by skaband
 	Qwen = Model{

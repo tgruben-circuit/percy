@@ -13,7 +13,7 @@ Get independent ideas from a different model, then compare against your own to s
    ```
    subagent tool call:
      slug: "co-brainstorm"
-     model: "gpt-5.3-codex"
+     model: "gpt-5.5"
      wait: false
      timeout_seconds: 300
      prompt: |
@@ -52,6 +52,6 @@ Get independent ideas from a different model, then compare against your own to s
 ## Error Handling
 
 If the subagent model is not available (e.g., no OpenAI API key configured), tell the user:
-"The co-brainstorm skill requires the gpt-5.3-codex model. Please configure your OpenAI API key to use this skill."
+"The co-brainstorm skill requires the gpt-5.5 model. Please configure your OpenAI API key to use this skill."
 
 Do NOT fall back to the same model — the value comes from independent perspectives.

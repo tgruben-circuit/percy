@@ -13,7 +13,7 @@ Generate an independent implementation plan from a different model, then compare
    ```
    subagent tool call:
      slug: "co-plan"
-     model: "gpt-5.3-codex"
+     model: "gpt-5.5"
      wait: false
      timeout_seconds: 300
      prompt: |
@@ -54,6 +54,6 @@ Generate an independent implementation plan from a different model, then compare
 ## Error Handling
 
 If the subagent model is not available, tell the user:
-"The co-plan skill requires the gpt-5.3-codex model. Please configure your OpenAI API key to use this skill."
+"The co-plan skill requires the gpt-5.5 model. Please configure your OpenAI API key to use this skill."
 
 Do NOT fall back to the same model.
