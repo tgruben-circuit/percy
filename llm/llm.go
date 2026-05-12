@@ -296,6 +296,42 @@ func (t ThinkingLevel) ThinkingEffort() string {
 	}
 }
 
+// ParseThinkingLevel converts a string to a ThinkingLevel.
+func ParseThinkingLevel(s string) ThinkingLevel {
+	switch s {
+	case "off":
+		return ThinkingLevelOff
+	case "minimal":
+		return ThinkingLevelMinimal
+	case "low":
+		return ThinkingLevelLow
+	case "medium", "":
+		return ThinkingLevelMedium
+	case "high":
+		return ThinkingLevelHigh
+	default:
+		return ThinkingLevelMedium
+	}
+}
+
+// ThinkingLevelString returns the string representation of a ThinkingLevel.
+func (t ThinkingLevel) ThinkingLevelString() string {
+	switch t {
+	case ThinkingLevelOff:
+		return "off"
+	case ThinkingLevelMinimal:
+		return "minimal"
+	case ThinkingLevelLow:
+		return "low"
+	case ThinkingLevelMedium:
+		return "medium"
+	case ThinkingLevelHigh:
+		return "high"
+	default:
+		return "medium"
+	}
+}
+
 type Response struct {
 	ID           string
 	Type         string

@@ -4749,7 +4749,8 @@ svg {
   color: white;
 }
 
-.endpoint-toggle {
+.endpoint-toggle,
+.thinking-level-buttons {
   display: flex;
   gap: 0;
   margin-bottom: 0.5rem;
@@ -4772,6 +4773,11 @@ svg {
 
 .toggle-btn:last-child {
   border-radius: 0 0.375rem 0.375rem 0;
+  border-left: none;
+}
+
+.toggle-btn:not(:first-child):not(:last-child) {
+  border-radius: 0;
   border-left: none;
 }
 

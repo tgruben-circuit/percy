@@ -825,6 +825,7 @@ func (m *Manager) GetModelInfo(modelID string) *ModelInfo {
 
 // createServiceFromModel creates an LLM service from a database model configuration
 func (m *Manager) createServiceFromModel(model *generated.Model) llm.Service {
+	thinkingLevel := llm.ParseThinkingLevel(model.ThinkingLevel)
 	switch model.ProviderType {
 	case "anthropic":
 		return &ant.Service{
@@ -832,7 +833,7 @@ func (m *Manager) createServiceFromModel(model *generated.Model) llm.Service {
 			URL:           model.Endpoint,
 			Model:         model.ModelName,
 			HTTPC:         m.httpc,
-			ThinkingLevel: llm.ThinkingLevelMedium,
+			ThinkingLevel: thinkingLevel,
 		}
 	case "openai":
 		return &oai.Service{
@@ -855,7 +856,7 @@ func (m *Manager) createServiceFromModel(model *generated.Model) llm.Service {
 			},
 			MaxTokens:     int(model.MaxTokens),
 			HTTPC:         m.httpc,
-			ThinkingLevel: llm.ThinkingLevelMedium,
+			ThinkingLevel: thinkingLevel,
 		}
 	case "gemini":
 		return &gem.Service{

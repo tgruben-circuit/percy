@@ -5,6 +5,7 @@ import {
   CustomModel,
   CreateCustomModelRequest,
   TestCustomModelRequest,
+  ThinkingLevel,
 } from "../services/api";
 
 interface ModelsModalProps {
@@ -54,6 +55,17 @@ interface BuiltInModel {
   ready: boolean;
 }
 
+const THINKING_LEVELS: { value: ThinkingLevel; label: string }[] = [
+  { value: "off", label: "Off" },
+  { value: "minimal", label: "Minimal" },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+];
+
+// Providers that support thinking/reasoning configuration
+const THINKING_PROVIDERS: Set<ProviderType> = new Set(["anthropic", "openai-responses"]);
+
 interface FormData {
   display_name: string;
   provider_type: ProviderType;
@@ -63,6 +75,7 @@ interface FormData {
   model_name: string;
   max_tokens: number;
   tags: string; // Comma-separated tags
+  thinking_level: ThinkingLevel;
 }
 
 const emptyForm: FormData = {
@@ -74,6 +87,7 @@ const emptyForm: FormData = {
   model_name: "",
   max_tokens: 200000,
   tags: "",
+  thinking_level: "medium",
 };
 
 function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
@@ -196,6 +210,7 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
         model_name: form.model_name,
         max_tokens: form.max_tokens,
         tags: form.tags,
+        thinking_level: form.thinking_level,
       };
 
       if (editingModelId) {
@@ -226,6 +241,7 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
       model_name: model.model_name,
       max_tokens: model.max_tokens,
       tags: model.tags,
+      thinking_level: model.thinking_level || "medium",
     });
     setShowForm(true);
     setTestResult(null);
@@ -413,6 +429,25 @@ function ModelsModal({ isOpen, onClose, onModelsChanged }: ModelsModalProps) {
                 className="form-input"
               />
             </div>
+
+            {/* Thinking Level - only for providers that support it */}
+            {THINKING_PROVIDERS.has(form.provider_type) && (
+              <div className="form-group">
+                <label>Thinking Level</label>
+                <div className="thinking-level-buttons">
+                  {THINKING_LEVELS.map((level) => (
+                    <button
+                      key={level.value}
+                      type="button"
+                      className={`toggle-btn ${form.thinking_level === level.value ? "selected" : ""}`}
+                      onClick={() => setForm((prev) => ({ ...prev, thinking_level: level.value }))}
+                    >
+                      {level.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Tags */}
             <div className="form-group">

@@ -448,7 +448,10 @@ export interface CustomModel {
   model_name: string;
   max_tokens: number;
   tags: string; // Comma-separated tags (e.g., "slug" for slug generation)
+  thinking_level: ThinkingLevel;
 }
+
+export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high";
 
 export interface CreateCustomModelRequest {
   display_name: string;
@@ -458,6 +461,7 @@ export interface CreateCustomModelRequest {
   model_name: string;
   max_tokens: number;
   tags: string; // Comma-separated tags
+  thinking_level: ThinkingLevel;
 }
 
 export interface TestCustomModelRequest {
