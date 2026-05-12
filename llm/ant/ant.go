@@ -127,7 +127,7 @@ type content struct {
 	Source    json.RawMessage `json:"source,omitempty"`     // for image
 
 	// for thinking
-	Thinking  string `json:"thinking,omitempty"`
+	Thinking  *string `json:"thinking,omitempty"`
 	Data      string `json:"data,omitempty"`      // for redacted_thinking or image
 	Signature string `json:"signature,omitempty"` // for thinking
 
@@ -358,7 +358,7 @@ func fromLLMContent(c llm.Content) content {
 			d.Text = &c.Text
 		}
 	case llm.ContentTypeThinking:
-		d.Thinking = c.Thinking
+		d.Thinking = &c.Thinking
 		d.Signature = c.Signature
 	case llm.ContentTypeRedactedThinking:
 		d.Data = c.Data
@@ -475,7 +475,7 @@ func toLLMContent(c content) llm.Content {
 		ID:         c.ID,
 		Type:       toLLMContentType[c.Type],
 		MediaType:  c.MediaType,
-		Thinking:   c.Thinking,
+		Thinking:   derefStr(c.Thinking),
 		Data:       c.Data,
 		Signature:  c.Signature,
 		ToolName:   c.ToolName,
@@ -607,4 +607,11 @@ func (s *Service) ConfigDetails() map[string]string {
 		"model":           model,
 		"has_api_key_set": fmt.Sprintf("%v", s.APIKey != ""),
 	}
+}
+
+func derefStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

@@ -11,6 +11,8 @@ import (
 	"github.com/tgruben-circuit/percy/llm"
 )
 
+func ptr(s string) *string { return &s }
+
 func TestIsClaudeModel(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -153,7 +155,7 @@ func TestToLLMContent(t *testing.T) {
 			name: "thinking content",
 			c: content{
 				Type:      "thinking",
-				Thinking:  "thinking content",
+				Thinking:  ptr("thinking content"),
 				Signature: "signature",
 			},
 			want: llm.Content{
@@ -774,7 +776,7 @@ func TestFromLLMContent(t *testing.T) {
 			},
 			want: content{
 				Type:      "thinking",
-				Thinking:  "thinking content",
+				Thinking:  ptr("thinking content"),
 				Signature: "signature",
 			},
 		},
@@ -893,8 +895,8 @@ func TestFromLLMContent(t *testing.T) {
 				t.Errorf("fromLLMContent().ID = %v, want %v", got.ID, tt.want.ID)
 			}
 
-			if got.Thinking != tt.want.Thinking {
-				t.Errorf("fromLLMContent().Thinking = %v, want %v", got.Thinking, tt.want.Thinking)
+			if derefStr(got.Thinking) != derefStr(tt.want.Thinking) {
+				t.Errorf("fromLLMContent().Thinking = %v, want %v", derefStr(got.Thinking), derefStr(tt.want.Thinking))
 			}
 
 			if got.Signature != tt.want.Signature {
