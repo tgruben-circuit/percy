@@ -33,7 +33,20 @@ const (
 	Claude45Sonnet = "claude-sonnet-4-5-20250929"
 	Claude45Opus   = "claude-opus-4-5-20251101"
 	Claude46Opus   = "claude-opus-4-6"
+	Claude47Opus   = "claude-opus-4-7"
 )
+
+// useAdaptiveThinking reports whether the model requires adaptive thinking
+// (thinking.type: "adaptive" + output_config.effort) instead of enabled thinking
+// (thinking.type: "enabled" + budget_tokens).
+func useAdaptiveThinking(model string) bool {
+	switch model {
+	case Claude47Opus, Claude46Opus:
+		return true
+	default:
+		return false
+	}
+}
 
 // IsClaudeModel reports whether userName is a user-friendly Claude model.
 // It uses ClaudeModelName under the hood.
@@ -62,7 +75,7 @@ func (s *Service) TokenContextWindow() int {
 	}
 
 	switch model {
-	case Claude46Opus, Claude45Sonnet, Claude4Sonnet:
+	case Claude47Opus, Claude46Opus, Claude45Sonnet, Claude4Sonnet:
 		return 1000000
 	case Claude37Sonnet:
 		return 200000
@@ -223,8 +236,13 @@ type systemContent struct {
 // request represents the request payload for creating a message.
 // thinking configures extended thinking for Claude models.
 type thinking struct {
-	Type         string `json:"type"`                    // "enabled"
-	BudgetTokens int    `json:"budget_tokens,omitempty"` // Max tokens for thinking
+	Type         string `json:"type"`                    // "enabled" or "adaptive"
+	BudgetTokens int    `json:"budget_tokens,omitempty"` // Max tokens for thinking (enabled mode only)
+}
+
+// outputConfig controls model behavior for adaptive thinking models.
+type outputConfig struct {
+	Effort string `json:"effort"` // "low", "medium", "high"
 }
 
 type request struct {
@@ -237,6 +255,7 @@ type request struct {
 	Tools         []*tool         `json:"tools,omitempty"`
 	ToolChoice    *toolChoice     `json:"tool_choice,omitempty"`
 	Thinking      *thinking       `json:"thinking,omitempty"`
+	OutputConfig  *outputConfig   `json:"output_config,omitempty"`
 	Temperature   float64         `json:"temperature,omitempty"`
 	TopK          int             `json:"top_k,omitempty"`
 	TopP          float64         `json:"top_p,omitempty"`
@@ -417,12 +436,17 @@ func (s *Service) fromLLMRequest(r *llm.Request) *request {
 
 	// Enable extended thinking if a thinking level is set
 	if s.ThinkingLevel != llm.ThinkingLevelOff {
-		budget := s.ThinkingLevel.ThinkingBudgetTokens()
-		// Ensure max_tokens > budget_tokens as required by Anthropic API
-		if maxTokens <= budget {
-			req.MaxTokens = budget + 1024
+		if useAdaptiveThinking(req.Model) {
+			req.Thinking = &thinking{Type: "adaptive"}
+			req.OutputConfig = &outputConfig{Effort: s.ThinkingLevel.ThinkingEffort()}
+		} else {
+			budget := s.ThinkingLevel.ThinkingBudgetTokens()
+			// Ensure max_tokens > budget_tokens as required by Anthropic API
+			if maxTokens <= budget {
+				req.MaxTokens = budget + 1024
+			}
+			req.Thinking = &thinking{Type: "enabled", BudgetTokens: budget}
 		}
-		req.Thinking = &thinking{Type: "enabled", BudgetTokens: budget}
 	}
 	return req
 }

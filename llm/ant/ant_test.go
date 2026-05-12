@@ -1217,3 +1217,44 @@ func TestDoStartTimeEndTime(t *testing.T) {
 		}
 	}
 }
+
+func TestAdaptiveThinking(t *testing.T) {
+	// Adaptive models (opus-4-6, opus-4-7) use thinking.type="adaptive" + output_config.effort
+	svc := &Service{Model: Claude47Opus, ThinkingLevel: llm.ThinkingLevelMedium, APIKey: "test"}
+	req := svc.fromLLMRequest(&llm.Request{
+		Messages: []llm.Message{{Role: llm.MessageRoleUser, Content: []llm.Content{{Type: llm.ContentTypeText, Text: "hi"}}}},
+	})
+	if req.Thinking == nil {
+		t.Fatal("expected thinking to be set")
+	}
+	if req.Thinking.Type != "adaptive" {
+		t.Errorf("thinking.type = %q, want %q", req.Thinking.Type, "adaptive")
+	}
+	if req.Thinking.BudgetTokens != 0 {
+		t.Errorf("thinking.budget_tokens = %d, want 0 for adaptive", req.Thinking.BudgetTokens)
+	}
+	if req.OutputConfig == nil {
+		t.Fatal("expected output_config to be set")
+	}
+	if req.OutputConfig.Effort != "medium" {
+		t.Errorf("output_config.effort = %q, want %q", req.OutputConfig.Effort, "medium")
+	}
+
+	// Non-adaptive models (opus-4-5) use thinking.type="enabled" + budget_tokens
+	svc2 := &Service{Model: Claude45Opus, ThinkingLevel: llm.ThinkingLevelMedium, APIKey: "test"}
+	req2 := svc2.fromLLMRequest(&llm.Request{
+		Messages: []llm.Message{{Role: llm.MessageRoleUser, Content: []llm.Content{{Type: llm.ContentTypeText, Text: "hi"}}}},
+	})
+	if req2.Thinking == nil {
+		t.Fatal("expected thinking to be set")
+	}
+	if req2.Thinking.Type != "enabled" {
+		t.Errorf("thinking.type = %q, want %q", req2.Thinking.Type, "enabled")
+	}
+	if req2.Thinking.BudgetTokens == 0 {
+		t.Error("thinking.budget_tokens should be non-zero for enabled mode")
+	}
+	if req2.OutputConfig != nil {
+		t.Error("output_config should be nil for enabled mode")
+	}
+}

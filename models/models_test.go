@@ -40,6 +40,7 @@ func TestByID(t *testing.T) {
 		{id: "claude-sonnet-4.5", wantID: "claude-sonnet-4.5", wantNil: false},
 		{id: "claude-haiku-4.5", wantID: "claude-haiku-4.5", wantNil: false},
 		{id: "claude-opus-4.5", wantID: "claude-opus-4.5", wantNil: false},
+		{id: "claude-opus-4.7", wantID: "claude-opus-4.7", wantNil: false},
 		{id: "claude-opus-4.6", wantID: "claude-opus-4.6", wantNil: false},
 		{id: "nonexistent", wantNil: true},
 	}
@@ -65,8 +66,8 @@ func TestByID(t *testing.T) {
 
 func TestDefault(t *testing.T) {
 	d := Default()
-	if d.ID != "claude-opus-4.6" {
-		t.Errorf("Default().ID = %q, want %q", d.ID, "claude-opus-4.6")
+	if d.ID != "claude-opus-4.7" {
+		t.Errorf("Default().ID = %q, want %q", d.ID, "claude-opus-4.7")
 	}
 }
 
@@ -301,8 +302,8 @@ func TestManagerResolveModelID(t *testing.T) {
 		input string
 		want  string
 	}{
-		{input: "latest:planner", want: "claude-opus-4.6"},
-		{input: "latest:claude-opus", want: "claude-opus-4.6"},
+		{input: "latest:planner", want: "claude-opus-4.7"},
+		{input: "latest:claude-opus", want: "claude-opus-4.7"},
 		{input: "latest:verifier", want: "gpt-5.3-codex"},
 		{input: "latest:gpt-codex", want: "gpt-5.3-codex"},
 		{input: "gpt-5.2-codex", want: "gpt-5.2-codex"},
@@ -346,8 +347,8 @@ func TestManagerHasModel(t *testing.T) {
 	}
 
 	// Should not have models requiring API keys
-	if manager.HasModel("claude-opus-4.6") {
-		t.Error("HasModel('claude-opus-4.6') should return false without API key")
+	if manager.HasModel("claude-opus-4.7") {
+		t.Error("HasModel('claude-opus-4.7') should return false without API key")
 	}
 
 	// Should not have non-existent model
@@ -462,19 +463,19 @@ func TestGetModelSource(t *testing.T) {
 		{
 			name:    "anthropic with env var only",
 			cfg:     &Config{AnthropicAPIKey: "test-key"},
-			modelID: "claude-opus-4.6",
+			modelID: "claude-opus-4.7",
 			want:    "$ANTHROPIC_API_KEY",
 		},
 		{
 			name:    "anthropic with gateway implicit key",
 			cfg:     &Config{Gateway: "https://gateway.example.com", AnthropicAPIKey: "implicit"},
-			modelID: "claude-opus-4.6",
+			modelID: "claude-opus-4.7",
 			want:    "exe.dev gateway",
 		},
 		{
 			name:    "anthropic with gateway but explicit key",
 			cfg:     &Config{Gateway: "https://gateway.example.com", AnthropicAPIKey: "actual-key"},
-			modelID: "claude-opus-4.6",
+			modelID: "claude-opus-4.7",
 			want:    "$ANTHROPIC_API_KEY",
 		},
 		{
@@ -544,7 +545,7 @@ func TestGetAvailableModelsUnion(t *testing.T) {
 	models := manager.GetAvailableModels()
 
 	// Should have anthropic models and fireworks models, plus predictable
-	expectedModels := []string{"claude-opus-4.6", "claude-opus-4.5", "qwen3-coder-fireworks", "glm-4p6-fireworks", "claude-sonnet-4.5", "claude-haiku-4.5", "predictable"}
+	expectedModels := []string{"claude-opus-4.7", "claude-opus-4.6", "claude-opus-4.5", "qwen3-coder-fireworks", "glm-4p6-fireworks", "claude-sonnet-4.5", "claude-haiku-4.5", "predictable"}
 	for _, expected := range expectedModels {
 		found := false
 		for _, m := range models {
