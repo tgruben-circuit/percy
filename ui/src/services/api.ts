@@ -303,10 +303,24 @@ class ApiService {
     return response.json();
   }
 
-  async getSkills(): Promise<Array<{ name: string; description: string }>> {
-    const response = await fetch(`${this.baseUrl}/skills`);
+  async getSkills(cwd?: string): Promise<SkillSummary[]> {
+    const url = cwd
+      ? `${this.baseUrl}/skills?cwd=${encodeURIComponent(cwd)}`
+      : `${this.baseUrl}/skills`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to get skills: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  async getSkillContent(name: string, cwd?: string): Promise<SkillContent> {
+    const url = cwd
+      ? `${this.baseUrl}/skills/${encodeURIComponent(name)}?cwd=${encodeURIComponent(cwd)}`
+      : `${this.baseUrl}/skills/${encodeURIComponent(name)}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to load skill content: ${response.statusText}`);
     }
     return response.json();
   }
@@ -437,6 +451,21 @@ class ApiService {
 }
 
 export const api = new ApiService();
+
+export interface SkillSummary {
+  name: string;
+  description: string;
+  path: string;
+  scope: string; // "project", "user", or "builtin"
+}
+
+export interface SkillContent {
+  name: string;
+  description: string;
+  path: string;
+  scope: string;
+  content: string;
+}
 
 // Custom models API
 export interface CustomModel {

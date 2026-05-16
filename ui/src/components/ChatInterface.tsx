@@ -8,7 +8,19 @@ import {
   isDistillStatusMessage,
 } from "../types";
 import { api, ApiError } from "../services/api";
-import { ThemeMode, getStoredTheme, setStoredTheme, applyTheme } from "../services/theme";
+import {
+  ThemeMode,
+  getStoredTheme,
+  setStoredTheme,
+  applyTheme,
+  getStoredColorThemeId,
+  setStoredColorThemeId,
+  applyColorThemeVars,
+} from "../services/theme";
+import { ColorTheme, getColorThemeById } from "../services/colorThemes";
+import ThemePickerModal from "./ThemePickerModal";
+import SkillsList from "./SkillsList";
+import Modal from "./Modal";
 import {
   WindowColor,
   getStoredWindowColor,
@@ -686,6 +698,17 @@ function ChatInterface({
   // Settings modal removed - configuration moved to status bar for empty conversations
   const [showOverflowMenu, setShowOverflowMenu] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(getStoredTheme);
+  const [colorTheme, setColorTheme] = useState<ColorTheme | null>(() => {
+    const id = getStoredColorThemeId();
+    return id ? (getColorThemeById(id) ?? null) : null;
+  });
+  const [showThemePicker, setShowThemePicker] = useState(false);
+  const [showSkillsModal, setShowSkillsModal] = useState(false);
+
+  // Apply stored color theme on mount
+  useEffect(() => {
+    applyColorThemeVars(colorTheme?.cssVars ?? null);
+  }, [colorTheme]);
   const [windowColor, setWindowColor] = useState<WindowColor>(getStoredWindowColor);
   const [browserNotifsEnabled, setBrowserNotifsEnabled] = useState(() =>
     isChannelEnabled("browser"),
@@ -709,10 +732,7 @@ function ChatInterface({
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [terminalInjectedText, setTerminalInjectedText] = useState<string | null>(null);
   const [terminalAutoFocusId, setTerminalAutoFocusId] = useState<string | null>(null);
-  const [skillsPanel, setSkillsPanel] = useState<Array<{
-    name: string;
-    description: string;
-  }> | null>(null);
+
   const [showFileTree, setShowFileTree] = useState(false);
   const [editingMessage, setEditingMessage] = useState<{sequenceId: number; text: string} | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1107,12 +1127,7 @@ function ChatInterface({
 
     // Handle /skills command
     if (trimmedMessage === "/skills") {
-      try {
-        const skills = await api.getSkills();
-        setSkillsPanel(skills);
-      } catch {
-        setSkillsPanel([]);
-      }
+      setShowSkillsModal(true);
       return;
     }
 
@@ -1880,6 +1895,24 @@ function ChatInterface({
                   </button>
                 </div>
 
+                {/* Color theme picker */}
+                <button
+                  className="overflow-menu-item"
+                  onClick={() => {
+                    setShowOverflowMenu(false);
+                    setShowThemePicker(true);
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+                    <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+                    <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+                    <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+                  </svg>
+                  Color Theme{colorTheme ? `: ${colorTheme.name}` : ""}
+                </button>
+
                 {/* Window color selector */}
                 <div className="overflow-menu-divider" />
                 <div className="theme-toggle-row">
@@ -2063,58 +2096,29 @@ function ChatInterface({
         }}
       />
 
-      {/* Skills Panel */}
-      {skillsPanel !== null && (
-        <div
-          style={{
-            padding: "8px 12px",
-            backgroundColor: "var(--bg-secondary)",
-            borderTop: "1px solid var(--border-color)",
-            fontSize: "13px",
-          }}
+      {/* Skills Modal */}
+      {showSkillsModal && (
+        <Modal
+          isOpen
+          onClose={() => setShowSkillsModal(false)}
+          title="Available Skills"
+          className="skills-modal"
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: skillsPanel.length > 0 ? "6px" : 0,
-            }}
-          >
-            <strong>Available Skills</strong>
-            <button
-              onClick={() => setSkillsPanel(null)}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--text-secondary)",
-                padding: "2px 4px",
-                fontSize: "16px",
-                lineHeight: 1,
-              }}
-              aria-label="Close skills panel"
-            >
-              &times;
-            </button>
-          </div>
-          {skillsPanel.length === 0 ? (
-            <div style={{ color: "var(--text-secondary)" }}>No skills found.</div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              {skillsPanel.map((skill) => (
-                <div key={skill.name}>
-                  <span style={{ fontWeight: 500 }}>{skill.name}</span>
-                  {skill.description && (
-                    <span style={{ color: "var(--text-secondary)", marginLeft: "8px" }}>
-                      {skill.description}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+          <SkillsList cwd={currentConversation?.cwd || undefined} />
+        </Modal>
+      )}
+
+      {/* Color Theme Picker */}
+      {showThemePicker && (
+        <ThemePickerModal
+          currentThemeId={colorTheme?.id ?? null}
+          onSelect={(theme) => {
+            setColorTheme(theme);
+            setStoredColorThemeId(theme?.id ?? null);
+            applyColorThemeVars(theme?.cssVars ?? null);
+          }}
+          onClose={() => setShowThemePicker(false)}
+        />
       )}
 
       {/* Unified Status Bar */}

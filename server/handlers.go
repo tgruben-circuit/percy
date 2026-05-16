@@ -19,11 +19,13 @@ import (
 	"strings"
 	"time"
 
+	bundledskills "github.com/tgruben-circuit/percy/bundled_skills"
 	"github.com/tgruben-circuit/percy/claudetool/browse"
 	"github.com/tgruben-circuit/percy/db"
 	"github.com/tgruben-circuit/percy/db/generated"
 	"github.com/tgruben-circuit/percy/llm"
 	"github.com/tgruben-circuit/percy/models"
+	"github.com/tgruben-circuit/percy/skills"
 	"github.com/tgruben-circuit/percy/slug"
 	"github.com/tgruben-circuit/percy/ui"
 	"github.com/tgruben-circuit/percy/version"
@@ -1664,28 +1666,107 @@ func (s *Server) handleSetSetting(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"}) //nolint:errchkjson // best-effort HTTP response
 }
 
-// handleSkills returns the list of discovered skills
+// SkillInfo is the response shape for the skills viewer.
+type SkillInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Path        string `json:"path"`
+	Scope       string `json:"scope"` // "project", "user", or "builtin"
+}
+
+func resolveSkillCwd(r *http.Request) (cwd, gitRoot string) {
+	cwd = r.URL.Query().Get("cwd")
+	if cwd == "" {
+		cwd, _ = os.Getwd()
+	}
+	if gi, err := collectGitInfo(cwd); err == nil && gi != nil {
+		gitRoot = gi.Root
+	}
+	return cwd, gitRoot
+}
+
+func classifySkill(sk skills.Skill, projectDirs []string) string {
+	if sk.Path == "" {
+		return "builtin"
+	}
+	if bd := bundledskills.TmpDir(); bd != "" && strings.HasPrefix(sk.Path, bd+string(filepath.Separator)) {
+		return "builtin"
+	}
+	for _, d := range projectDirs {
+		if strings.HasPrefix(sk.Path, d+string(filepath.Separator)) {
+			return "project"
+		}
+	}
+	return "user"
+}
+
+// handleSkills returns the list of discovered skills with scope/path metadata.
 func (s *Server) handleSkills(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	cwd, _ := os.Getwd()
-	gitRoot := ""
-	if gi, err := collectGitInfo(cwd); err == nil && gi != nil {
-		gitRoot = gi.Root
-	}
+	cwd, gitRoot := resolveSkillCwd(r)
+	projectDirs := skills.ProjectSkillsDirs(cwd, gitRoot)
 	found := discoverSkills(cwd, gitRoot)
 
-	type skillInfo struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-	}
-	result := make([]skillInfo, len(found))
+	result := make([]SkillInfo, len(found))
 	for i, sk := range found {
-		result[i] = skillInfo{Name: sk.Name, Description: sk.Description}
+		result[i] = SkillInfo{
+			Name:        sk.Name,
+			Description: sk.Description,
+			Path:        sk.Path,
+			Scope:       classifySkill(sk, projectDirs),
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(result) //nolint:errchkjson // best-effort HTTP response
+}
+
+// handleSkillContent returns the full SKILL.md content for a named skill.
+func (s *Server) handleSkillContent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	name := r.PathValue("name")
+	if name == "" {
+		http.Error(w, "missing name", http.StatusBadRequest)
+		return
+	}
+	cwd, gitRoot := resolveSkillCwd(r)
+	projectDirs := skills.ProjectSkillsDirs(cwd, gitRoot)
+	for _, sk := range discoverSkills(cwd, gitRoot) {
+		if sk.Name != name {
+			continue
+		}
+		if sk.Path == "" {
+			http.Error(w, "skill has no source file", http.StatusInternalServerError)
+			return
+		}
+		data, err := os.ReadFile(sk.Path)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		content := string(data)
+		resp := struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+			Path        string `json:"path"`
+			Scope       string `json:"scope"`
+			Content     string `json:"content"`
+		}{
+			Name:        sk.Name,
+			Description: sk.Description,
+			Path:        sk.Path,
+			Scope:       classifySkill(sk, projectDirs),
+			Content:     strings.TrimRight(content, "\n") + "\n",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(resp) //nolint:errchkjson // best-effort HTTP response
+		return
+	}
+	http.Error(w, "skill not found", http.StatusNotFound)
 }

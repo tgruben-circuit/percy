@@ -1,8 +1,21 @@
 import * as esbuild from 'esbuild';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as zlib from 'zlib';
 import * as crypto from 'crypto';
 import { execSync } from 'child_process';
+
+// Plugin to resolve monaco-themes JSON files that are blocked by their exports map
+const monacoThemesPlugin = {
+  name: 'monaco-themes-resolver',
+  setup(build) {
+    build.onResolve({ filter: /^monaco-themes\/themes\// }, (args) => {
+      const relPath = args.path.replace('monaco-themes/', '');
+      const absPath = path.resolve('node_modules/monaco-themes', relPath);
+      return { path: absPath };
+    });
+  },
+};
 
 const isWatch = process.argv.includes('--watch');
 const isProd = !isWatch;
@@ -77,6 +90,10 @@ async function build() {
       sourcemap: true,
       metafile: true,
       external: ['monaco-editor', '/monaco-editor.js'],
+      loader: {
+        '.json': 'json',
+      },
+      plugins: [monacoThemesPlugin],
     });
 
     // Copy static files

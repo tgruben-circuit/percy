@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Conversation, ConversationWithState } from "../types";
 import { api } from "../services/api";
+import Modal from "./Modal";
+import SkillsList from "./SkillsList";
 
 interface ConversationDrawerProps {
   isOpen: boolean;
@@ -38,6 +40,7 @@ function ConversationDrawer({
   onShowCostDashboard,
 }: ConversationDrawerProps) {
   const [showArchived, setShowArchived] = useState(false);
+  const [showSkillsModal, setShowSkillsModal] = useState(false);
   const [archivedConversations, setArchivedConversations] = useState<Conversation[]>([]);
   const [loadingArchived, setLoadingArchived] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -677,6 +680,26 @@ function ConversationDrawer({
             </svg>
             <span>{showArchived ? "Back to Conversations" : "View Archived"}</span>
           </button>
+          <button
+            onClick={() => setShowSkillsModal(true)}
+            className="btn-secondary"
+            title="Skills"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "0.5rem",
+            }}
+          >
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+          </button>
           {onShowCostDashboard && (
             <button
               onClick={onShowCostDashboard}
@@ -707,6 +730,16 @@ function ConversationDrawer({
           )}
         </div>
       </div>
+      {showSkillsModal && (
+        <Modal
+          isOpen
+          onClose={() => setShowSkillsModal(false)}
+          title="Skills"
+          className="skills-modal"
+        >
+          <SkillsList cwd={viewedConversation?.cwd || undefined} />
+        </Modal>
+      )}
     </>
   );
 }

@@ -27,6 +27,10 @@ var (
 	tmpDirErr  error
 )
 
+// TmpDir returns the directory where embedded skills have been extracted,
+// or "" if extraction has not happened yet.
+func TmpDir() string { return tmpDir }
+
 // EmbeddedSkills returns all bundled skills parsed from the embedded SKILL.md
 // files. Results are cached after the first successful call. The embedded
 // files are written to a temporary directory so that skills.Parse (which reads

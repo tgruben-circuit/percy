@@ -491,6 +491,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	// Skills API
 	mux.Handle("GET /api/skills", http.HandlerFunc(s.handleSkills))
+	mux.Handle("GET /api/skills/{name}", http.HandlerFunc(s.handleSkillContent))
 
 	// Version endpoints
 	mux.Handle("GET /version", http.HandlerFunc(s.handleVersion))
